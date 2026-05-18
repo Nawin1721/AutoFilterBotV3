@@ -1,3 +1,5 @@
+<img width="1774" height="887" alt="AutoFilterBotV3" src="https://github.com/user-attachments/assets/626bd105-d389-45a8-afd2-7e1b48155839" />
+
 # 🤖 AutoFilterBotV3
 
 A powerful Telegram Auto Filter Bot built using Python, MongoDB, and Telegram Bot API.
