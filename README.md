@@ -53,17 +53,28 @@ FORCE_SUB_CHANNEL=your_channel_username
 🚀 Run Bot 
 python main.py
 
-🌍 Deploy
+``` 
+
+## 🚀 Run Bot
+
+```bash
+python main.py
+```
+
+---
+
+## 🌍 Deploy
+
 Supports:
-Render
-Koyeb
-Railway
+- Render
+- Koyeb
+- Railway
 
 ---
 
 ## 👨‍💻 Developer
 
-Made with ❤️ by Naveen Kadali
+Made with 💜 by Naveen Kadali
 
 ---
 
