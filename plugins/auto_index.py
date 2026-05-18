@@ -24,17 +24,20 @@ async def save_media(update, context):
 
     file_id = None
     file_name = None
+    file_size = None
 
     # DOCUMENT
     if msg.document:
 
         file_id = msg.document.file_id
         file_name = msg.document.file_name
+        file_size = msg.document.file_size
 
     # VIDEO
     elif msg.video:
 
         file_id = msg.video.file_id
+        file_size = msg.video.file_size
 
         if msg.video.file_name:
 
@@ -49,6 +52,7 @@ async def save_media(update, context):
 
         file_id = msg.audio.file_id
         file_name = msg.audio.file_name
+        file_size = msg.audio.file_size
 
     # PHOTO
     elif msg.photo:
@@ -62,13 +66,29 @@ async def save_media(update, context):
         # ORIGINAL CHANNEL CAPTION
         caption = msg.caption if msg.caption else file_name
 
-        # SEARCH TEXT
+        # BETTER SEARCH TEXT
+        search_text = f"{file_name} {caption}".lower()
+
         search_text = (
-            file_name.lower()
+            search_text
             .replace(".", " ")
             .replace("_", " ")
             .replace("-", " ")
+            .replace("[", " ")
+            .replace("]", " ")
+            .replace("(", " ")
+            .replace(")", " ")
         )
+
+        # DUPLICATE CHECK
+        existing = files_col.find_one({
+            "file_id": file_id
+        })
+
+        if existing:
+
+            print("ALREADY INDEXED ⚠️")
+            return
 
         data = {
 
@@ -76,25 +96,17 @@ async def save_media(update, context):
 
             "file_id": file_id,
 
+            "file_size": file_size,
+
             "caption": caption,
 
             "search_text": search_text,
 
-            # IMPORTANT 🔥
+            # IMPORTANT FOR COPY MESSAGE
             "chat_id": msg.chat.id,
 
             "message_id": msg.message_id
         }
-
-        # DUPLICATE CHECK
-        existing = files_col.find_one({
-            "message_id": msg.message_id
-        })
-
-        if existing:
-
-            print("ALREADY INDEXED ⚠️")
-            return
 
         files_col.insert_one(data)
 
