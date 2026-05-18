@@ -1,0 +1,6 @@
+python-telegram-bot
+pymongo
+requests
+rapidfuzz
+dnspython
+httpx
