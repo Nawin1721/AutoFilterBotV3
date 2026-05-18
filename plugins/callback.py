@@ -6,8 +6,35 @@ RESULTS_PER_PAGE = 10
 
 
 # =========================
+# SMART SEARCH PATTERN
+# =========================
+
+def create_search_pattern(query):
+
+    query = query.lower()
+
+    query = (
+        query
+        .replace("(", " ")
+        .replace(")", " ")
+        .replace("[", " ")
+        .replace("]", " ")
+        .replace(".", " ")
+        .replace("_", " ")
+        .replace("-", " ")
+    )
+
+    words = query.split()
+
+    pattern = ".*".join(words)
+
+    return pattern
+
+
+# =========================
 # CREATE BUTTONS FUNCTION
 # =========================
+
 def build_buttons(results, bot_username, page=0):
 
     start = page * RESULTS_PER_PAGE
@@ -68,6 +95,7 @@ def build_buttons(results, bot_username, page=0):
 # =========================
 # CALLBACK MAIN
 # =========================
+
 async def button_click(update, context):
 
     query = update.callback_query
@@ -78,6 +106,7 @@ async def button_click(update, context):
     # =========================
     # USER PROTECTION
     # =========================
+
     search_user = context.user_data.get("search_user")
 
     if search_user and search_user != query.from_user.id:
@@ -92,11 +121,13 @@ async def button_click(update, context):
     # =========================
     # GET RESULTS SAFE
     # =========================
+
     results = context.user_data.get("results", [])
 
     # =========================
     # HELP MENU
     # =========================
+
     if data == "help_menu":
 
         text = (
@@ -110,11 +141,13 @@ async def button_click(update, context):
         )
 
         await query.message.edit_text(text)
+
         return
 
     # =========================
     # LANGUAGE MENU
     # =========================
+
     if data == "language_menu":
 
         if not results:
@@ -172,6 +205,7 @@ async def button_click(update, context):
     # =========================
     # QUALITY MENU
     # =========================
+
     if data == "quality_menu":
 
         if not results:
@@ -229,6 +263,7 @@ async def button_click(update, context):
     # =========================
     # BACK TO RESULTS
     # =========================
+
     if data == "back_results":
 
         if not results:
@@ -256,6 +291,7 @@ async def button_click(update, context):
     # =========================
     # LANGUAGE FILTER
     # =========================
+
     if data.startswith("lang_"):
 
         original_query = context.user_data.get("original_query")
@@ -273,19 +309,22 @@ async def button_click(update, context):
 
         new_query = f"{original_query} {language}"
 
+        search_pattern = create_search_pattern(new_query)
+
         results = list(files_col.find({
+
             "$or": [
 
                 {
-                    "file_name": {
-                        "$regex": new_query,
+                    "search_text": {
+                        "$regex": search_pattern,
                         "$options": "i"
                     }
                 },
 
                 {
                     "caption": {
-                        "$regex": new_query,
+                        "$regex": search_pattern,
                         "$options": "i"
                     }
                 }
@@ -319,6 +358,7 @@ async def button_click(update, context):
     # =========================
     # QUALITY FILTER
     # =========================
+
     if data.startswith("quality_"):
 
         original_query = context.user_data.get("original_query")
@@ -336,19 +376,22 @@ async def button_click(update, context):
 
         new_query = f"{original_query} {quality}"
 
+        search_pattern = create_search_pattern(new_query)
+
         results = list(files_col.find({
+
             "$or": [
 
                 {
-                    "file_name": {
-                        "$regex": new_query,
+                    "search_text": {
+                        "$regex": search_pattern,
                         "$options": "i"
                     }
                 },
 
                 {
                     "caption": {
-                        "$regex": new_query,
+                        "$regex": search_pattern,
                         "$options": "i"
                     }
                 }
@@ -382,6 +425,7 @@ async def button_click(update, context):
     # =========================
     # PAGINATION
     # =========================
+
     if data.startswith("page_"):
 
         if not results:
@@ -412,6 +456,7 @@ async def button_click(update, context):
 # =========================
 # HANDLER
 # =========================
+
 callback_handler = CallbackQueryHandler(
     button_click
 )
