@@ -15,7 +15,6 @@ RESULTS_PER_PAGE = 10
 # =========================
 # SMART SEARCH PATTERN
 # =========================
-
 def create_search_pattern(query):
 
     query = query.lower()
@@ -41,7 +40,6 @@ def create_search_pattern(query):
 # =========================
 # SEARCH FILES
 # =========================
-
 async def search_files(update, context):
 
     msg = update.message
@@ -86,7 +84,7 @@ async def search_files(update, context):
         "🔍 Searching..."
     )
 
-    # SMART SEARCH PATTERN
+    # SMART SEARCH
     search_pattern = create_search_pattern(query)
 
     # SEARCH DATABASE
@@ -179,7 +177,6 @@ async def search_files(update, context):
 # =========================
 # SEND PAGE
 # =========================
-
 async def send_page(msg, context, page):
 
     results = context.user_data.get("results", [])
@@ -252,11 +249,41 @@ async def send_page(msg, context, page):
         reply_markup=reply_markup
     )
 
+    # AUTO DELETE AFTER 2 MINUTES
+    context.job_queue.run_once(
+        delete_message,
+        when=120,
+        data={
+            "chat_id": sent_message.chat_id,
+            "message_id": sent_message.message_id
+        }
+    )
+
+
+# =========================
+# DELETE MESSAGE
+# =========================
+async def delete_message(context):
+
+    job = context.job
+
+    data = job.data
+
+    try:
+
+        await context.bot.delete_message(
+            chat_id=data["chat_id"],
+            message_id=data["message_id"]
+        )
+
+    except:
+
+        pass
+
 
 # =========================
 # HANDLER
 # =========================
-
 search_handler = MessageHandler(
     filters.TEXT & ~filters.COMMAND,
     search_files
