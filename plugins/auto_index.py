@@ -62,11 +62,39 @@ async def save_media(update, context):
         # ORIGINAL CHANNEL CAPTION
         caption = msg.caption if msg.caption else file_name
 
+        # SEARCH TEXT
+        search_text = (
+            file_name.lower()
+            .replace(".", " ")
+            .replace("_", " ")
+            .replace("-", " ")
+        )
+
         data = {
+
             "file_name": file_name,
+
             "file_id": file_id,
-            "caption": caption
+
+            "caption": caption,
+
+            "search_text": search_text,
+
+            # IMPORTANT 🔥
+            "chat_id": msg.chat.id,
+
+            "message_id": msg.message_id
         }
+
+        # DUPLICATE CHECK
+        existing = files_col.find_one({
+            "message_id": msg.message_id
+        })
+
+        if existing:
+
+            print("ALREADY INDEXED ⚠️")
+            return
 
         files_col.insert_one(data)
 
