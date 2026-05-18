@@ -61,8 +61,12 @@ Railway
 
 ---
 
-👨‍💻 Developer
+## 👨‍💻 Developer
+
 Made with ❤️ by Naveen Kadali
 
-⭐ Support
+---
+
+## ⭐ Support
+
 If you like this project, give it a star ⭐ on GitHub.
