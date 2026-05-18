@@ -84,6 +84,16 @@ async def search_files(update, context):
         "🔍 Searching..."
     )
 
+    # AUTO DELETE SEARCHING MESSAGE
+    context.job_queue.run_once(
+        delete_message,
+        when=300,
+        data={
+            "chat_id": search_msg.chat_id,
+            "message_id": search_msg.message_id
+        }
+    )
+
     # SMART SEARCH
     search_pattern = create_search_pattern(query)
 
@@ -133,9 +143,29 @@ async def search_files(update, context):
 
             suggestion = match[0]
 
-            await msg.reply_text(
+            suggestion_msg = await msg.reply_text(
                 f"❓ Did You Mean:\n\n{suggestion}"
             )
+
+            # AUTO DELETE SUGGESTION
+            context.job_queue.run_once(
+                delete_message,
+                when=300,
+                data={
+                    "chat_id": suggestion_msg.chat_id,
+                    "message_id": suggestion_msg.message_id
+                }
+            )
+
+        # DELETE USER MESSAGE
+        context.job_queue.run_once(
+            delete_message,
+            when=300,
+            data={
+                "chat_id": msg.chat_id,
+                "message_id": msg.message_id
+            }
+        )
 
         return
 
@@ -157,9 +187,19 @@ async def search_files(update, context):
 
         try:
 
-            await msg.reply_photo(
+            imdb_msg = await msg.reply_photo(
                 photo=movie["poster"],
                 caption=movie["caption"]
+            )
+
+            # AUTO DELETE IMDb MESSAGE
+            context.job_queue.run_once(
+                delete_message,
+                when=300,
+                data={
+                    "chat_id": imdb_msg.chat_id,
+                    "message_id": imdb_msg.message_id
+                }
             )
 
         except:
@@ -249,13 +289,23 @@ async def send_page(msg, context, page):
         reply_markup=reply_markup
     )
 
-    # AUTO DELETE AFTER 2 MINUTES
+    # AUTO DELETE BOT RESULT MESSAGE
     context.job_queue.run_once(
         delete_message,
-        when=120,
+        when=300,
         data={
             "chat_id": sent_message.chat_id,
             "message_id": sent_message.message_id
+        }
+    )
+
+    # AUTO DELETE USER MESSAGE
+    context.job_queue.run_once(
+        delete_message,
+        when=300,
+        data={
+            "chat_id": msg.chat_id,
+            "message_id": msg.message_id
         }
     )
 
