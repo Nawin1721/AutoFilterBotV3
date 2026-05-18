@@ -60,3 +60,9 @@ Koyeb
 Railway
 
 ---
+
+👨‍💻 Developer
+Made with ❤️ by Naveen Kadali
+
+⭐ Support
+If you like this project, give it a star ⭐ on GitHub.
