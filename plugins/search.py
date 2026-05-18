@@ -13,8 +13,35 @@ RESULTS_PER_PAGE = 10
 
 
 # =========================
+# SMART SEARCH PATTERN
+# =========================
+
+def create_search_pattern(query):
+
+    query = query.lower()
+
+    query = (
+        query
+        .replace("(", " ")
+        .replace(")", " ")
+        .replace("[", " ")
+        .replace("]", " ")
+        .replace(".", " ")
+        .replace("_", " ")
+        .replace("-", " ")
+    )
+
+    words = query.split()
+
+    pattern = ".*".join(words)
+
+    return pattern
+
+
+# =========================
 # SEARCH FILES
 # =========================
+
 async def search_files(update, context):
 
     msg = update.message
@@ -59,20 +86,24 @@ async def search_files(update, context):
         "🔍 Searching..."
     )
 
+    # SMART SEARCH PATTERN
+    search_pattern = create_search_pattern(query)
+
     # SEARCH DATABASE
     results = list(files_col.find({
+
         "$or": [
 
             {
-                "file_name": {
-                    "$regex": query,
+                "search_text": {
+                    "$regex": search_pattern,
                     "$options": "i"
                 }
             },
 
             {
                 "caption": {
-                    "$regex": query,
+                    "$regex": search_pattern,
                     "$options": "i"
                 }
             }
@@ -148,6 +179,7 @@ async def search_files(update, context):
 # =========================
 # SEND PAGE
 # =========================
+
 async def send_page(msg, context, page):
 
     results = context.user_data.get("results", [])
@@ -234,6 +266,7 @@ async def send_page(msg, context, page):
 # =========================
 # DELETE MESSAGE
 # =========================
+
 async def delete_message(context):
 
     job = context.job
@@ -255,6 +288,7 @@ async def delete_message(context):
 # =========================
 # HANDLER
 # =========================
+
 search_handler = MessageHandler(
     filters.TEXT & ~filters.COMMAND,
     search_files
