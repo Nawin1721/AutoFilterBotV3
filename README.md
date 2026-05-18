@@ -50,9 +50,6 @@ GROUP_ID=your_group_id
 DB_CHANNEL_ID=your_channel_id
 FORCE_SUB_CHANNEL=your_channel_username
 
-🚀 Run Bot 
-python main.py
-
 ``` 
 
 ## 🚀 Run Bot
