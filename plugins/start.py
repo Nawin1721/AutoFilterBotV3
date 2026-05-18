@@ -37,13 +37,13 @@ async def start(update, context):
 
                 return
 
-            sent_file = await context.bot.send_document(
+            # =========================
+            # SEND FILE USING COPY MESSAGE
+            # =========================
+            sent_file = await context.bot.copy_message(
                 chat_id=msg.chat.id,
-                document=file["file_id"],
-                caption=file.get(
-                    "caption",
-                    file["file_name"]
-                )
+                from_chat_id=file["chat_id"],
+                message_id=file["message_id"]
             )
 
             # AUTO DELETE AFTER 30 MINUTES
