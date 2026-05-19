@@ -79,7 +79,9 @@ async def search_files(update, context):
 
     print(f"Searching: {query}")
 
-    # SEARCH MESSAGE
+    # =========================
+    # SEARCHING MESSAGE
+    # =========================
     search_msg = await context.bot.send_message(
         chat_id=msg.chat.id,
         text="🔍 Searching..."
@@ -88,17 +90,21 @@ async def search_files(update, context):
     # AUTO DELETE SEARCH MESSAGE
     context.application.job_queue.run_once(
         delete_message,
-        when=300,
+        when=305,
         data={
             "chat_id": search_msg.chat_id,
             "message_id": search_msg.message_id
         }
     )
 
+    # =========================
     # SMART SEARCH
+    # =========================
     search_pattern = create_search_pattern(query)
 
+    # =========================
     # SEARCH DATABASE
+    # =========================
     results = list(files_col.find({
 
         "$or": [
@@ -119,7 +125,9 @@ async def search_files(update, context):
         ]
     }))
 
+    # =========================
     # NO RESULTS
+    # =========================
     if not results:
 
         await search_msg.edit_text(
@@ -152,7 +160,7 @@ async def search_files(update, context):
             # AUTO DELETE SUGGESTION
             context.application.job_queue.run_once(
                 delete_message,
-                when=300,
+                when=305,
                 data={
                     "chat_id": suggestion_msg.chat_id,
                     "message_id": suggestion_msg.message_id
@@ -162,7 +170,7 @@ async def search_files(update, context):
         # DELETE USER MESSAGE
         context.application.job_queue.run_once(
             delete_message,
-            when=300,
+            when=305,
             data={
                 "chat_id": msg.chat_id,
                 "message_id": msg.message_id
@@ -171,7 +179,9 @@ async def search_files(update, context):
 
         return
 
+    # =========================
     # RESULT COUNT
+    # =========================
     await search_msg.edit_text(
         f"✅ Found {len(results)} Results"
     )
@@ -182,7 +192,9 @@ async def search_files(update, context):
     context.user_data["original_query"] = query
     context.user_data["search_user"] = update.effective_user.id
 
+    # =========================
     # IMDb INFO
+    # =========================
     movie = await get_movie(query)
 
     if movie:
@@ -198,7 +210,7 @@ async def search_files(update, context):
             # AUTO DELETE IMDb MESSAGE
             context.application.job_queue.run_once(
                 delete_message,
-                when=300,
+                when=305,
                 data={
                     "chat_id": imdb_msg.chat_id,
                     "message_id": imdb_msg.message_id
@@ -209,7 +221,9 @@ async def search_files(update, context):
 
             pass
 
+    # =========================
     # SEND PAGE 1
+    # =========================
     await send_page(
         msg,
         context,
@@ -234,7 +248,9 @@ async def send_page(msg, context, page):
 
     buttons = []
 
+    # =========================
     # TOP FILTER BUTTONS
+    # =========================
     buttons.append([
 
         InlineKeyboardButton(
@@ -248,7 +264,9 @@ async def send_page(msg, context, page):
         )
     ])
 
+    # =========================
     # FILE BUTTONS
+    # =========================
     for file in current_results:
 
         button = [
@@ -260,7 +278,19 @@ async def send_page(msg, context, page):
 
         buttons.append(button)
 
+    # =========================
+    # SEND ALL BUTTON
+    # =========================
+    buttons.append([
+        InlineKeyboardButton(
+            "📤 Send All Files",
+            callback_data=f"sendall_{page}"
+        )
+    ])
+
+    # =========================
     # PAGINATION BUTTONS
+    # =========================
     nav_buttons = []
 
     if page > 0:
@@ -287,26 +317,33 @@ async def send_page(msg, context, page):
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
+    # =========================
+    # SEND SEARCH RESULT
+    # =========================
     sent_message = await context.bot.send_message(
         chat_id=msg.chat.id,
         text=f"🔍 Search Results\n📄 Page: {page+1}",
         reply_markup=reply_markup
     )
 
+    # =========================
     # AUTO DELETE RESULT MESSAGE
+    # =========================
     context.application.job_queue.run_once(
         delete_message,
-        when=300,
+        when=305,
         data={
             "chat_id": sent_message.chat_id,
             "message_id": sent_message.message_id
         }
     )
 
+    # =========================
     # AUTO DELETE USER MESSAGE
+    # =========================
     context.application.job_queue.run_once(
         delete_message,
-        when=300,
+        when=305,
         data={
             "chat_id": msg.chat_id,
             "message_id": msg.message_id
@@ -318,6 +355,9 @@ async def send_page(msg, context, page):
 # DELETE MESSAGE
 # =========================
 async def delete_message(context):
+
+    if not context.job:
+        return
 
     job = context.job
 
