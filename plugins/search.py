@@ -79,13 +79,14 @@ async def search_files(update, context):
 
     print(f"Searching: {query}")
 
-    # SEARCH ANIMATION
-    search_msg = await msg.reply_text(
-        "🔍 Searching..."
+    # SEARCH MESSAGE
+    search_msg = await context.bot.send_message(
+        chat_id=msg.chat.id,
+        text="🔍 Searching..."
     )
 
-    # AUTO DELETE SEARCHING MESSAGE
-    context.job_queue.run_once(
+    # AUTO DELETE SEARCH MESSAGE
+    context.application.job_queue.run_once(
         delete_message,
         when=300,
         data={
@@ -143,12 +144,13 @@ async def search_files(update, context):
 
             suggestion = match[0]
 
-            suggestion_msg = await msg.reply_text(
-                f"❓ Did You Mean:\n\n{suggestion}"
+            suggestion_msg = await context.bot.send_message(
+                chat_id=msg.chat.id,
+                text=f"❓ Did You Mean:\n\n{suggestion}"
             )
 
             # AUTO DELETE SUGGESTION
-            context.job_queue.run_once(
+            context.application.job_queue.run_once(
                 delete_message,
                 when=300,
                 data={
@@ -158,7 +160,7 @@ async def search_files(update, context):
             )
 
         # DELETE USER MESSAGE
-        context.job_queue.run_once(
+        context.application.job_queue.run_once(
             delete_message,
             when=300,
             data={
@@ -187,13 +189,14 @@ async def search_files(update, context):
 
         try:
 
-            imdb_msg = await msg.reply_photo(
+            imdb_msg = await context.bot.send_photo(
+                chat_id=msg.chat.id,
                 photo=movie["poster"],
                 caption=movie["caption"]
             )
 
             # AUTO DELETE IMDb MESSAGE
-            context.job_queue.run_once(
+            context.application.job_queue.run_once(
                 delete_message,
                 when=300,
                 data={
@@ -284,13 +287,14 @@ async def send_page(msg, context, page):
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
-    sent_message = await msg.reply_text(
+    sent_message = await context.bot.send_message(
+        chat_id=msg.chat.id,
         text=f"🔍 Search Results\n📄 Page: {page+1}",
         reply_markup=reply_markup
     )
 
-    # AUTO DELETE BOT RESULT MESSAGE
-    context.job_queue.run_once(
+    # AUTO DELETE RESULT MESSAGE
+    context.application.job_queue.run_once(
         delete_message,
         when=300,
         data={
@@ -300,7 +304,7 @@ async def send_page(msg, context, page):
     )
 
     # AUTO DELETE USER MESSAGE
-    context.job_queue.run_once(
+    context.application.job_queue.run_once(
         delete_message,
         when=300,
         data={
