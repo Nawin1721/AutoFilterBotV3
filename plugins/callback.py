@@ -1,5 +1,6 @@
 from telegram.ext import CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
 from database import files_col
 
 RESULTS_PER_PAGE = 10
@@ -66,6 +67,14 @@ def build_buttons(results, bot_username, page=0):
                 url=f"https://t.me/{bot_username}?start={file['_id']}"
             )
         ])
+
+    # SEND ALL BUTTON
+    buttons.append([
+        InlineKeyboardButton(
+            "📤 Send All Files",
+            callback_data=f"sendall_{page}"
+        )
+    ])
 
     # PAGINATION
     nav_buttons = []
@@ -141,6 +150,86 @@ async def button_click(update, context):
         )
 
         await query.message.edit_text(text)
+
+        return
+
+    # =========================
+    # SEND ALL FILES
+    # =========================
+
+    if data.startswith("sendall_"):
+
+        if not results:
+
+            await query.answer(
+                "⚠️ Search Expired.",
+                show_alert=True
+            )
+
+            return
+
+        page = int(data.split("_")[1])
+
+        start = page * RESULTS_PER_PAGE
+        end = start + RESULTS_PER_PAGE
+
+        current_results = results[start:end]
+
+        sent = 0
+
+        status_msg = await context.bot.send_message(
+            chat_id=query.message.chat.id,
+            text="📤 Sending All Files In PM..."
+        )
+
+        for file in current_results:
+
+            try:
+
+                sent_file = await context.bot.copy_message(
+                    chat_id=query.from_user.id,
+                    from_chat_id=file["chat_id"],
+                    message_id=file["message_id"]
+                )
+
+                # AUTO DELETE PM FILE
+                context.application.job_queue.run_once(
+                    delete_pm_file,
+                    when=305,
+                    data={
+                        "chat_id": query.from_user.id,
+                        "message_id": sent_file.message_id
+                    }
+                )
+
+                sent += 1
+
+            except Exception as e:
+
+                print(e)
+
+        # WARNING MESSAGE
+        warning_msg = await context.bot.send_message(
+            chat_id=query.from_user.id,
+            text=(
+                "⚠️ Please Forward / Save Files Immediately.\n\n"
+                "🗑 Files Will Be Automatically Deleted After Some Time."
+            )
+        )
+
+        # AUTO DELETE WARNING
+        context.application.job_queue.run_once(
+            delete_pm_file,
+            when=305,
+            data={
+                "chat_id": query.from_user.id,
+                "message_id": warning_msg.message_id
+            }
+        )
+
+        await status_msg.edit_text(
+            f"✅ Sent {sent} Files In PM"
+        )
 
         return
 
@@ -451,6 +540,28 @@ async def button_click(update, context):
         )
 
         return
+
+
+# =========================
+# DELETE PM FILE
+# =========================
+
+async def delete_pm_file(context):
+
+    job = context.job
+
+    data = job.data
+
+    try:
+
+        await context.bot.delete_message(
+            chat_id=data["chat_id"],
+            message_id=data["message_id"]
+        )
+
+    except:
+
+        pass
 
 
 # =========================
