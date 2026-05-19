@@ -44,4 +44,6 @@ app.add_handler(help_handler)
 
 print("AutoFilter Bot Running 🔥")
 
-app.run_polling()
+app.run_polling(
+    drop_pending_updates=True
+)
