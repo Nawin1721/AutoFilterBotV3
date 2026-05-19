@@ -46,13 +46,38 @@ async def start(update, context):
                 message_id=file["message_id"]
             )
 
-            # AUTO DELETE AFTER 30 MINUTES
-            context.job_queue.run_once(
+            # =========================
+            # WARNING MESSAGE
+            # =========================
+            warning_msg = await context.bot.send_message(
+                chat_id=msg.chat.id,
+                text=(
+                    "⚠️ Please Forward / Save This File Immediately.\n\n"
+                    "🗑 This File Will Be Automatically Deleted After Some Time."
+                )
+            )
+
+            # =========================
+            # AUTO DELETE FILE
+            # =========================
+            context.application.job_queue.run_once(
                 delete_pm_file,
-                when=1800,
+                when=305,
                 data={
                     "chat_id": msg.chat.id,
                     "message_id": sent_file.message_id
+                }
+            )
+
+            # =========================
+            # AUTO DELETE WARNING
+            # =========================
+            context.application.job_queue.run_once(
+                delete_pm_file,
+                when=305,
+                data={
+                    "chat_id": msg.chat.id,
+                    "message_id": warning_msg.message_id
                 }
             )
 
@@ -60,10 +85,10 @@ async def start(update, context):
 
         except Exception as e:
 
-            print(e)
+            print(f"ERROR: {e}")
 
             await msg.reply_text(
-                f"ERROR:\n{e}"
+                "❌ Bot Unblocked Cheshi Malli Try Cheyyandi."
             )
 
             return
@@ -72,16 +97,23 @@ async def start(update, context):
     # NORMAL START
     # =========================
     buttons = [
+
         [
             InlineKeyboardButton(
-                "📢 Updates Channel",
+                "📢 Updates",
                 url=f"https://t.me/{FORCE_SUB_CHANNEL}"
-            )
-        ],
-        [
+            ),
+
             InlineKeyboardButton(
                 "❓ Help",
                 callback_data="help_menu"
+            )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "🎬 Search Movies",
+                url="https://t.me/"
             )
         ]
     ]
@@ -89,12 +121,17 @@ async def start(update, context):
     reply_markup = InlineKeyboardMarkup(buttons)
 
     text = (
-        "🔥 Welcome To AutoFilter Bot 🔥\n\n"
-        "🎬 Search Any Movie In Group\n"
-        "📥 Files Will Be Sent In PM\n\n"
-        "⚡ Fast Search\n"
-        "🎭 IMDb Posters\n"
-        "📄 Pagination System"
+        "🔥 Welcome To Professional AutoFilter Bot 🔥\n\n"
+
+        "🎬 Search Any Movie Name In Group\n"
+        "📥 Files Will Be Sent In PM\n"
+        "⚡ Fast & Smart Search\n"
+        "🎭 IMDb Posters & Details\n"
+        "📄 Pagination + Filters\n"
+        "📤 Send All Files Feature\n\n"
+
+        "⚠️ PM Files Will Be Auto Deleted After Some Time.\n"
+        "📌 Forward / Save Important Files Immediately."
     )
 
     await msg.reply_text(
@@ -110,12 +147,16 @@ async def help_command(update, context):
 
     text = (
         "📚 Bot Commands\n\n"
+
         "/start - Start Bot\n"
         "/help - Show Help\n"
         "/request - Request Movie\n"
         "/stats - Admin Stats\n"
         "/broadcast - Admin Broadcast\n\n"
-        "🎬 Simply Search Movie Names In Group"
+
+        "🎬 Simply Search Movie Names In Group\n"
+        "📥 Files Will Be Delivered In PM\n"
+        "📤 Use Send All Button To Get Full Page Files"
     )
 
     await update.message.reply_text(text)
@@ -125,6 +166,9 @@ async def help_command(update, context):
 # DELETE PM FILE
 # =========================
 async def delete_pm_file(context):
+
+    if not context.job:
+        return
 
     job = context.job
 
