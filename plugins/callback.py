@@ -33,7 +33,7 @@ def create_search_pattern(query):
 
 
 # =========================
-# CREATE BUTTONS FUNCTION
+# CREATE BUTTONS
 # =========================
 
 def build_buttons(results, bot_username, page=0):
@@ -45,8 +45,9 @@ def build_buttons(results, bot_username, page=0):
 
     buttons = []
 
-    # TOP MENU
+    # FILTER BUTTONS
     buttons.append([
+
         InlineKeyboardButton(
             "🌐 Language",
             callback_data="language_menu"
@@ -56,46 +57,58 @@ def build_buttons(results, bot_username, page=0):
             "🎥 Quality",
             callback_data="quality_menu"
         )
+
     ])
 
     # FILE BUTTONS
     for file in current_results:
 
         buttons.append([
+
             InlineKeyboardButton(
                 text=file["file_name"][:40],
                 url=f"https://t.me/{bot_username}?start={file['_id']}"
             )
+
         ])
 
-    # SEND ALL BUTTON
+    # SEND ALL
     buttons.append([
+
         InlineKeyboardButton(
             "📤 Send All Files",
             callback_data=f"sendall_{page}"
         )
+
     ])
 
     # PAGINATION
     nav_buttons = []
 
     if page > 0:
+
         nav_buttons.append(
+
             InlineKeyboardButton(
                 "⬅ Prev",
                 callback_data=f"page_{page-1}"
             )
+
         )
 
     if end < len(results):
+
         nav_buttons.append(
+
             InlineKeyboardButton(
                 "Next ➡",
                 callback_data=f"page_{page+1}"
             )
+
         )
 
     if nav_buttons:
+
         buttons.append(nav_buttons)
 
     return InlineKeyboardMarkup(buttons)
@@ -108,29 +121,24 @@ def build_buttons(results, bot_username, page=0):
 async def button_click(update, context):
 
     query = update.callback_query
+
     await query.answer()
 
     data = query.data
 
-    # =========================
     # USER PROTECTION
-    # =========================
-
     search_user = context.user_data.get("search_user")
 
     if search_user and search_user != query.from_user.id:
 
         await query.answer(
-            "❌ This is another user's search.",
+            "❌ This Is Another User Search",
             show_alert=True
         )
 
         return
 
-    # =========================
-    # GET RESULTS SAFE
-    # =========================
-
+    # GET RESULTS
     results = context.user_data.get("results", [])
 
     # =========================
@@ -162,7 +170,7 @@ async def button_click(update, context):
         if not results:
 
             await query.answer(
-                "⚠️ Search Expired.",
+                "⚠️ Search Expired",
                 show_alert=True
             )
 
@@ -175,12 +183,12 @@ async def button_click(update, context):
 
         current_results = results[start:end]
 
-        sent = 0
-
         status_msg = await context.bot.send_message(
             chat_id=query.message.chat.id,
-            text="📤 Sending All Files In PM..."
+            text="📤 Sending Files In PM..."
         )
+
+        sent = 0
 
         for file in current_results:
 
@@ -212,7 +220,7 @@ async def button_click(update, context):
         warning_msg = await context.bot.send_message(
             chat_id=query.from_user.id,
             text=(
-                "⚠️ Please Forward / Save Files Immediately.\n\n"
+                "⚠️ Please Forward / Save These Files Immediately.\n\n"
                 "🗑 Files Will Be Automatically Deleted After Some Time."
             )
         )
@@ -227,6 +235,7 @@ async def button_click(update, context):
             }
         )
 
+        # CONFIRM MESSAGE
         await status_msg.edit_text(
             f"✅ Sent {sent} Files In PM"
         )
@@ -239,18 +248,10 @@ async def button_click(update, context):
 
     if data == "language_menu":
 
-        if not results:
-
-            await query.answer(
-                "⚠️ Search Expired. Search Again.",
-                show_alert=True
-            )
-
-            return
-
         buttons = [
 
             [
+
                 InlineKeyboardButton(
                     "English",
                     callback_data="lang_english"
@@ -260,9 +261,11 @@ async def button_click(update, context):
                     "Hindi",
                     callback_data="lang_hindi"
                 )
+
             ],
 
             [
+
                 InlineKeyboardButton(
                     "Tamil",
                     callback_data="lang_tamil"
@@ -272,21 +275,28 @@ async def button_click(update, context):
                     "Telugu",
                     callback_data="lang_telugu"
                 )
+
             ],
 
             [
+
+                InlineKeyboardButton(
+                    "🗑️ Clear",
+                    callback_data="clear_results"
+                ),
+
                 InlineKeyboardButton(
                     "⬅ Back",
                     callback_data="back_results"
                 )
-            ]
-        ]
 
-        reply_markup = InlineKeyboardMarkup(buttons)
+            ]
+
+        ]
 
         await query.message.edit_text(
             "🌐 Choose Language",
-            reply_markup=reply_markup
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
 
         return
@@ -297,30 +307,38 @@ async def button_click(update, context):
 
     if data == "quality_menu":
 
-        if not results:
-
-            await query.answer(
-                "⚠️ Search Expired. Search Again.",
-                show_alert=True
-            )
-
-            return
-
         buttons = [
 
             [
+
+                InlineKeyboardButton(
+                    "360p",
+                    callback_data="quality_360p"
+                ),
+
                 InlineKeyboardButton(
                     "480p",
                     callback_data="quality_480p"
+                )
+
+            ],
+
+            [
+
+                InlineKeyboardButton(
+                    "576p",
+                    callback_data="quality_576p"
                 ),
 
                 InlineKeyboardButton(
                     "720p",
                     callback_data="quality_720p"
                 )
+
             ],
 
             [
+
                 InlineKeyboardButton(
                     "1080p",
                     callback_data="quality_1080p"
@@ -330,39 +348,53 @@ async def button_click(update, context):
                     "2160p",
                     callback_data="quality_2160p"
                 )
+
             ],
 
             [
+
+                InlineKeyboardButton(
+                    "🗑️ Clear",
+                    callback_data="clear_results"
+                ),
+
                 InlineKeyboardButton(
                     "⬅ Back",
                     callback_data="back_results"
                 )
-            ]
-        ]
 
-        reply_markup = InlineKeyboardMarkup(buttons)
+            ]
+
+        ]
 
         await query.message.edit_text(
             "🎥 Choose Quality",
-            reply_markup=reply_markup
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
 
         return
 
     # =========================
-    # BACK TO RESULTS
+    # CLEAR RESULTS
+    # =========================
+
+    if data == "clear_results":
+
+        try:
+
+            await query.message.delete()
+
+        except:
+
+            pass
+
+        return
+
+    # =========================
+    # BACK RESULTS
     # =========================
 
     if data == "back_results":
-
-        if not results:
-
-            await query.answer(
-                "⚠️ Search Expired.",
-                show_alert=True
-            )
-
-            return
 
         reply_markup = build_buttons(
             results,
@@ -385,20 +417,11 @@ async def button_click(update, context):
 
         original_query = context.user_data.get("original_query")
 
-        if not original_query:
-
-            await query.answer(
-                "⚠️ Search Expired.",
-                show_alert=True
-            )
-
-            return
-
         language = data.split("_")[1]
 
         new_query = f"{original_query} {language}"
 
-        search_pattern = create_search_pattern(new_query)
+        pattern = create_search_pattern(new_query)
 
         results = list(files_col.find({
 
@@ -406,18 +429,20 @@ async def button_click(update, context):
 
                 {
                     "search_text": {
-                        "$regex": search_pattern,
+                        "$regex": pattern,
                         "$options": "i"
                     }
                 },
 
                 {
                     "caption": {
-                        "$regex": search_pattern,
+                        "$regex": pattern,
                         "$options": "i"
                     }
                 }
+
             ]
+
         }))
 
         if not results:
@@ -452,20 +477,11 @@ async def button_click(update, context):
 
         original_query = context.user_data.get("original_query")
 
-        if not original_query:
-
-            await query.answer(
-                "⚠️ Search Expired.",
-                show_alert=True
-            )
-
-            return
-
         quality = data.split("_")[1]
 
         new_query = f"{original_query} {quality}"
 
-        search_pattern = create_search_pattern(new_query)
+        pattern = create_search_pattern(new_query)
 
         results = list(files_col.find({
 
@@ -473,18 +489,20 @@ async def button_click(update, context):
 
                 {
                     "search_text": {
-                        "$regex": search_pattern,
+                        "$regex": pattern,
                         "$options": "i"
                     }
                 },
 
                 {
                     "caption": {
-                        "$regex": search_pattern,
+                        "$regex": pattern,
                         "$options": "i"
                     }
                 }
+
             ]
+
         }))
 
         if not results:
@@ -516,15 +534,6 @@ async def button_click(update, context):
     # =========================
 
     if data.startswith("page_"):
-
-        if not results:
-
-            await query.answer(
-                "⚠️ Search Expired.",
-                show_alert=True
-            )
-
-            return
 
         page = int(data.split("_")[1])
 
