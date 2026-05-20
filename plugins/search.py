@@ -68,10 +68,6 @@ async def search_files(update, context):
         await force_sub_message(msg)
         return
 
-    # ONLY GROUP
-    if msg.chat.id != GROUP_ID:
-        return
-
     query = msg.text
 
     if not query:
@@ -167,16 +163,6 @@ async def search_files(update, context):
                 }
             )
 
-        # DELETE USER MESSAGE
-        context.application.job_queue.run_once(
-            delete_message,
-            when=305,
-            data={
-                "chat_id": msg.chat_id,
-                "message_id": msg.message_id
-            }
-        )
-
         return
 
     # =========================
@@ -269,9 +255,11 @@ async def send_page(msg, context, page):
     # =========================
     for file in current_results:
 
+        size = file.get("file_size", "")
+
         button = [
             InlineKeyboardButton(
-                text=file["file_name"][:40],
+                text=f"[{size}] {file['file_name'][:35]}",
                 url=f"https://t.me/{context.bot.username}?start={file['_id']}"
             )
         ]
@@ -302,6 +290,13 @@ async def send_page(msg, context, page):
             )
         )
 
+    nav_buttons.append(
+        InlineKeyboardButton(
+            f"{page+1}/{(len(results)-1)//RESULTS_PER_PAGE+1}",
+            callback_data="pages"
+        )
+    )
+
     if end < len(results):
 
         nav_buttons.append(
@@ -311,9 +306,7 @@ async def send_page(msg, context, page):
             )
         )
 
-    if nav_buttons:
-
-        buttons.append(nav_buttons)
+    buttons.append(nav_buttons)
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
@@ -326,27 +319,13 @@ async def send_page(msg, context, page):
         reply_markup=reply_markup
     )
 
-    # =========================
     # AUTO DELETE RESULT MESSAGE
-    # =========================
     context.application.job_queue.run_once(
         delete_message,
         when=305,
         data={
             "chat_id": sent_message.chat_id,
             "message_id": sent_message.message_id
-        }
-    )
-
-    # =========================
-    # AUTO DELETE USER MESSAGE
-    # =========================
-    context.application.job_queue.run_once(
-        delete_message,
-        when=305,
-        data={
-            "chat_id": msg.chat_id,
-            "message_id": msg.message_id
         }
     )
 
