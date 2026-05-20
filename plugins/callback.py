@@ -384,9 +384,9 @@ async def button_click(update, context):
 
             await query.message.delete()
 
-        except:
+        except Exception as e:
 
-            pass
+            print(e)
 
         return
 
@@ -568,9 +568,9 @@ async def delete_pm_file(context):
             message_id=data["message_id"]
         )
 
-    except:
+    except Exception as e:
 
-        pass
+        print(e)
 
 
 # =========================
