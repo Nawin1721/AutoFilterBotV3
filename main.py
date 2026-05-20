@@ -43,6 +43,7 @@ app.add_handler(help_handler)
 # app.add_handler(inline_handler)
 
 print("AutoFilter Bot Running 🔥")
+print("Made By NAWIN 💖")
 
 app.run_polling(
     drop_pending_updates=True
