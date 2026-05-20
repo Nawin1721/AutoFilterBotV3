@@ -7,9 +7,34 @@ RESULTS_PER_PAGE = 10
 
 
 # =========================
-# SMART SEARCH PATTERN
+# FORMAT SIZE
 # =========================
+def human_size(size):
 
+    try:
+
+        size = int(size)
+
+        if size >= 1024 * 1024 * 1024:
+            return f"{size / (1024 * 1024 * 1024):.2f} GB"
+
+        elif size >= 1024 * 1024:
+            return f"{size / (1024 * 1024):.2f} MB"
+
+        elif size >= 1024:
+            return f"{size / 1024:.2f} KB"
+
+        else:
+            return f"{size} B"
+
+    except:
+
+        return "Unknown"
+
+
+# =========================
+# SEARCH PATTERN
+# =========================
 def create_search_pattern(query):
 
     query = query.lower()
@@ -33,9 +58,8 @@ def create_search_pattern(query):
 
 
 # =========================
-# CREATE BUTTONS
+# BUILD BUTTONS
 # =========================
-
 def build_buttons(results, bot_username, page=0):
 
     start = page * RESULTS_PER_PAGE
@@ -63,10 +87,16 @@ def build_buttons(results, bot_username, page=0):
     # FILE BUTTONS
     for file in current_results:
 
+        size = human_size(
+            file.get("file_size", 0)
+        )
+
+        text = f"[{size}] {file['file_name'][:45]}"
+
         buttons.append([
 
             InlineKeyboardButton(
-                text=f"[{file.get('file_size', 'Unknown')}] {file['file_name'][:40]}",
+                text=text,
                 url=f"https://t.me/{bot_username}?start={file['_id']}"
             )
 
@@ -76,40 +106,51 @@ def build_buttons(results, bot_username, page=0):
     buttons.append([
 
         InlineKeyboardButton(
-            "📤 Send All Files",
+            "📥 Send All Files",
             callback_data=f"sendall_{page}"
         )
 
     ])
 
     # PAGINATION
-    nav_buttons = []
+    total_pages = (
+        len(results) - 1
+    ) // RESULTS_PER_PAGE + 1
+
+    nav = []
 
     if page > 0:
 
-        nav_buttons.append(
+        nav.append(
 
             InlineKeyboardButton(
-                "⬅ Prev",
+                "⬅️ Back",
                 callback_data=f"page_{page-1}"
             )
 
         )
 
+    nav.append(
+
+        InlineKeyboardButton(
+            f"{page+1}/{total_pages}",
+            callback_data="pages"
+        )
+
+    )
+
     if end < len(results):
 
-        nav_buttons.append(
+        nav.append(
 
             InlineKeyboardButton(
-                "Next ➡",
+                "Next ➡️",
                 callback_data=f"page_{page+1}"
             )
 
         )
 
-    if nav_buttons:
-
-        buttons.append(nav_buttons)
+    buttons.append(nav)
 
     return InlineKeyboardMarkup(buttons)
 
@@ -117,7 +158,6 @@ def build_buttons(results, bot_username, page=0):
 # =========================
 # CALLBACK MAIN
 # =========================
-
 async def button_click(update, context):
 
     query = update.callback_query
@@ -126,34 +166,44 @@ async def button_click(update, context):
 
     data = query.data
 
+    # =========================
     # USER PROTECTION
-    search_user = context.user_data.get("search_user")
+    # =========================
+    search_user = context.user_data.get(
+        "search_user"
+    )
 
-    if search_user and search_user != query.from_user.id:
+    if search_user:
 
-        await query.answer(
-            "❌ This Is Another User Search",
-            show_alert=True
-        )
+        if search_user != query.from_user.id:
 
-        return
+            await query.answer(
+                "❌ This Search Belongs To Another User",
+                show_alert=True
+            )
 
+            return
+
+    # =========================
     # GET RESULTS
-    results = context.user_data.get("results", [])
+    # =========================
+    results = context.user_data.get(
+        "results",
+        []
+    )
 
     # =========================
     # HELP MENU
     # =========================
-
     if data == "help_menu":
 
         text = (
             "📚 Bot Commands\n\n"
             "/start - Start Bot\n"
-            "/help - Show Help\n"
+            "/help - Help Menu\n"
             "/request - Request Movie\n"
-            "/stats - Admin Stats\n"
-            "/broadcast - Admin Broadcast\n\n"
+            "/stats - Bot Stats\n"
+            "/broadcast - Broadcast\n\n"
             "🎬 Search Movie Names In Group"
         )
 
@@ -162,9 +212,8 @@ async def button_click(update, context):
         return
 
     # =========================
-    # SEND ALL FILES
+    # SEND ALL
     # =========================
-
     if data.startswith("sendall_"):
 
         if not results:
@@ -176,7 +225,9 @@ async def button_click(update, context):
 
             return
 
-        page = int(data.split("_")[1])
+        page = int(
+            data.split("_")[1]
+        )
 
         start = page * RESULTS_PER_PAGE
         end = start + RESULTS_PER_PAGE
@@ -220,8 +271,8 @@ async def button_click(update, context):
         warning_msg = await context.bot.send_message(
             chat_id=query.from_user.id,
             text=(
-                "⚠️ Please Forward / Save These Files Immediately.\n\n"
-                "🗑 Files Will Be Automatically Deleted After Some Time."
+                "⚠️ Please Save / Forward Files Immediately.\n\n"
+                "🗑 Files Will Be Deleted Automatically."
             )
         )
 
@@ -235,7 +286,6 @@ async def button_click(update, context):
             }
         )
 
-        # CONFIRM MESSAGE
         await status_msg.edit_text(
             f"✅ Sent {sent} Files In PM"
         )
@@ -245,7 +295,6 @@ async def button_click(update, context):
     # =========================
     # LANGUAGE MENU
     # =========================
-
     if data == "language_menu":
 
         buttons = [
@@ -286,7 +335,7 @@ async def button_click(update, context):
                 ),
 
                 InlineKeyboardButton(
-                    "⬅ Back",
+                    "⬅️ Back",
                     callback_data="back_results"
                 )
 
@@ -304,7 +353,6 @@ async def button_click(update, context):
     # =========================
     # QUALITY MENU
     # =========================
-
     if data == "quality_menu":
 
         buttons = [
@@ -359,7 +407,7 @@ async def button_click(update, context):
                 ),
 
                 InlineKeyboardButton(
-                    "⬅ Back",
+                    "⬅️ Back",
                     callback_data="back_results"
                 )
 
@@ -377,32 +425,24 @@ async def button_click(update, context):
     # =========================
     # CLEAR RESULTS
     # =========================
-
     if data == "clear_results":
 
-        try:
+        reply_markup = build_buttons(
+            results,
+            context.bot.username,
+            page=0
+        )
 
-            reply_markup = build_buttons(
-                results,
-                context.bot.username,
-                page=0
-            )
-
-            await query.message.edit_text(
-                "🔍 Search Results\n📄 Page: 1",
-                reply_markup=reply_markup
-            )
-
-        except Exception as e:
-
-            print(e)
+        await query.message.edit_text(
+            "🔍 Search Results\n📄 Page: 1",
+            reply_markup=reply_markup
+        )
 
         return
 
     # =========================
     # BACK RESULTS
     # =========================
-
     if data == "back_results":
 
         reply_markup = build_buttons(
@@ -421,16 +461,19 @@ async def button_click(update, context):
     # =========================
     # LANGUAGE FILTER
     # =========================
-
     if data.startswith("lang_"):
 
-        original_query = context.user_data.get("original_query")
+        original_query = context.user_data.get(
+            "original_query"
+        )
 
         language = data.split("_")[1]
 
         new_query = f"{original_query} {language}"
 
-        pattern = create_search_pattern(new_query)
+        pattern = create_search_pattern(
+            new_query
+        )
 
         results = list(files_col.find({
 
@@ -481,16 +524,19 @@ async def button_click(update, context):
     # =========================
     # QUALITY FILTER
     # =========================
-
     if data.startswith("quality_"):
 
-        original_query = context.user_data.get("original_query")
+        original_query = context.user_data.get(
+            "original_query"
+        )
 
         quality = data.split("_")[1]
 
         new_query = f"{original_query} {quality}"
 
-        pattern = create_search_pattern(new_query)
+        pattern = create_search_pattern(
+            new_query
+        )
 
         results = list(files_col.find({
 
@@ -541,10 +587,11 @@ async def button_click(update, context):
     # =========================
     # PAGINATION
     # =========================
-
     if data.startswith("page_"):
 
-        page = int(data.split("_")[1])
+        page = int(
+            data.split("_")[1]
+        )
 
         reply_markup = build_buttons(
             results,
@@ -563,8 +610,10 @@ async def button_click(update, context):
 # =========================
 # DELETE PM FILE
 # =========================
-
 async def delete_pm_file(context):
+
+    if not context.job:
+        return
 
     job = context.job
 
@@ -585,7 +634,6 @@ async def delete_pm_file(context):
 # =========================
 # HANDLER
 # =========================
-
 callback_handler = CallbackQueryHandler(
     button_click
 )
