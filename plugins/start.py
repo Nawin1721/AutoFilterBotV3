@@ -6,7 +6,7 @@ from bson import ObjectId
 from config import FORCE_SUB_CHANNEL
 from database import files_col
 
-print("NEW START FILE RUNNING 🔥")
+print("NEW START FILE RUNNING 1🔥")
 # =========================
 # START COMMAND
 # =========================
