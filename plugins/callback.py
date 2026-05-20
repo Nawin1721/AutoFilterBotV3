@@ -66,7 +66,7 @@ def build_buttons(results, bot_username, page=0):
         buttons.append([
 
             InlineKeyboardButton(
-                text=file["file_name"][:40],
+                text=f"[{file.get('file_size', 'Unknown')}] {file['file_name'][:40]}",
                 url=f"https://t.me/{bot_username}?start={file['_id']}"
             )
 
