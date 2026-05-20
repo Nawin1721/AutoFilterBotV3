@@ -13,6 +13,26 @@ RESULTS_PER_PAGE = 10
 
 
 # =========================
+# FORMAT FILE SIZE
+# =========================
+def human_size(size):
+
+    size = int(size)
+
+    if size >= 1024 * 1024 * 1024:
+        return f"{size / (1024 * 1024 * 1024):.2f} GB"
+
+    elif size >= 1024 * 1024:
+        return f"{size / (1024 * 1024):.2f} MB"
+
+    elif size >= 1024:
+        return f"{size / 1024:.2f} KB"
+
+    else:
+        return f"{size} B"
+
+
+# =========================
 # SMART SEARCH PATTERN
 # =========================
 def create_search_pattern(query):
@@ -255,7 +275,9 @@ async def send_page(msg, context, page):
     # =========================
     for file in current_results:
 
-        size = file.get("file_size", "")
+        size = human_size(
+            file.get("file_size", 0)
+        )
 
         button = [
             InlineKeyboardButton(
@@ -319,7 +341,9 @@ async def send_page(msg, context, page):
         reply_markup=reply_markup
     )
 
+    # =========================
     # AUTO DELETE RESULT MESSAGE
+    # =========================
     context.application.job_queue.run_once(
         delete_message,
         when=305,
