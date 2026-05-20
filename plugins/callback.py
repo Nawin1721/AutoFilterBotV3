@@ -382,7 +382,16 @@ async def button_click(update, context):
 
         try:
 
-            await query.message.delete()
+            reply_markup = build_buttons(
+                results,
+                context.bot.username,
+                page=0
+            )
+
+            await query.message.edit_text(
+                "🔍 Search Results\n📄 Page: 1",
+                reply_markup=reply_markup
+            )
 
         except Exception as e:
 
