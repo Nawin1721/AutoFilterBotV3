@@ -276,11 +276,23 @@ async def search_files(update, context):
 
     }))
 
+    # =========================
     # NO RESULTS
+    # =========================
     if not results:
 
         await search_msg.edit_text(
             "❌ No Results Found"
+        )
+
+        # AUTO DELETE NO RESULT
+        context.application.job_queue.run_once(
+            delete_message,
+            when=20,
+            data={
+                "chat_id": search_msg.chat_id,
+                "message_id": search_msg.message_id
+            }
         )
 
         all_files = list(files_col.find())
@@ -303,9 +315,10 @@ async def search_files(update, context):
                 f"❓ Did You Mean:\n\n{suggestion}"
             )
 
+            # AUTO DELETE SUGGESTION
             context.application.job_queue.run_once(
                 delete_message,
-                when=305,
+                when=20,
                 data={
                     "chat_id": suggest_msg.chat_id,
                     "message_id": suggest_msg.message_id
@@ -365,6 +378,16 @@ async def search_files(update, context):
 
     await search_msg.edit_text(
         f"✅ Found {len(results)} Results"
+    )
+
+    # AUTO DELETE FOUND MESSAGE
+    context.application.job_queue.run_once(
+        delete_message,
+        when=20,
+        data={
+            "chat_id": search_msg.chat_id,
+            "message_id": search_msg.message_id
+        }
     )
 
     # =========================
