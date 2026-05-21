@@ -154,7 +154,7 @@ def build_buttons(results, bot_username, page=0):
 
         ])
 
-    # SEND ALL BUTTON
+    # SEND ALL
     buttons.append([
 
         InlineKeyboardButton(
@@ -303,7 +303,6 @@ async def search_files(update, context):
                 f"❓ Did You Mean:\n\n{suggestion}"
             )
 
-            # AUTO DELETE SUGGESTION
             context.application.job_queue.run_once(
                 delete_message,
                 when=305,
@@ -315,54 +314,8 @@ async def search_files(update, context):
 
         return
 
-    # FOUND RESULTS
-    await search_msg.edit_text(
-        f"✅ Found {len(results)} Results"
-    )
-
     # =========================
-    # BUTTONS FIRST
-    # =========================
-
-    reply_markup = build_buttons(
-        results,
-        context.bot.username,
-        page=0
-    )
-
-    # RESULT MESSAGE
-    sent_message = await msg.reply_text(
-        "🔍 Search Results\n📄 Page: 1",
-        reply_markup=reply_markup
-    )
-
-    # SAVE RESULTS
-    context.bot_data[
-        str(sent_message.message_id)
-    ] = results
-
-    # SAVE ORIGINAL QUERY
-    context.bot_data[
-        f"query_{sent_message.message_id}"
-    ] = query
-
-    # SAVE SEARCH USER
-    context.user_data[
-        "search_user"
-    ] = msg.from_user.id
-
-    # AUTO DELETE RESULT
-    context.application.job_queue.run_once(
-        delete_message,
-        when=305,
-        data={
-            "chat_id": sent_message.chat_id,
-            "message_id": sent_message.message_id
-        }
-    )
-
-    # =========================
-    # IMDb AFTER BUTTONS
+    # IMDb FIRST
     # =========================
 
     try:
@@ -407,9 +360,55 @@ async def search_files(update, context):
         print(f"IMDb Error: {e}")
 
     # =========================
-    # AUTO DELETE USER QUERY
+    # FOUND RESULTS
     # =========================
 
+    await search_msg.edit_text(
+        f"✅ Found {len(results)} Results"
+    )
+
+    # =========================
+    # BUTTONS AFTER IMDb
+    # =========================
+
+    reply_markup = build_buttons(
+        results,
+        context.bot.username,
+        page=0
+    )
+
+    # RESULT MESSAGE
+    sent_message = await msg.reply_text(
+        "🔍 Search Results\n📄 Page: 1",
+        reply_markup=reply_markup
+    )
+
+    # SAVE RESULTS
+    context.bot_data[
+        str(sent_message.message_id)
+    ] = results
+
+    # SAVE ORIGINAL QUERY
+    context.bot_data[
+        f"query_{sent_message.message_id}"
+    ] = query
+
+    # SAVE SEARCH USER
+    context.user_data[
+        "search_user"
+    ] = msg.from_user.id
+
+    # AUTO DELETE RESULT
+    context.application.job_queue.run_once(
+        delete_message,
+        when=305,
+        data={
+            "chat_id": sent_message.chat_id,
+            "message_id": sent_message.message_id
+        }
+    )
+
+    # AUTO DELETE USER QUERY
     context.application.job_queue.run_once(
         delete_user_message,
         when=305,
