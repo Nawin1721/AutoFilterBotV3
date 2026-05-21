@@ -306,34 +306,10 @@ async def search_files(update, context):
         str(msg.chat.id)
     ] = results
 
-    # IMDb
-    movie = await get_movie(query)
+    # =========================
+    # BUTTONS FIRST
+    # =========================
 
-    if movie:
-
-        try:
-
-            imdb_msg = await context.bot.send_photo(
-                chat_id=msg.chat.id,
-                photo=movie["poster"],
-                caption=movie["caption"]
-            )
-
-            # AUTO DELETE IMDb
-            context.application.job_queue.run_once(
-                delete_message,
-                when=305,
-                data={
-                    "chat_id": imdb_msg.chat_id,
-                    "message_id": imdb_msg.message_id
-                }
-            )
-
-        except:
-
-            pass
-
-    # BUTTONS
     reply_markup = build_buttons(
         results,
         context.bot.username,
@@ -361,7 +337,40 @@ async def search_files(update, context):
         }
     )
 
+    # =========================
+    # IMDb AFTER BUTTONS
+    # =========================
+
+    movie = await get_movie(query)
+
+    if movie:
+
+        try:
+
+            imdb_msg = await context.bot.send_photo(
+                chat_id=msg.chat.id,
+                photo=movie["poster"],
+                caption=movie["caption"]
+            )
+
+            # AUTO DELETE IMDb
+            context.application.job_queue.run_once(
+                delete_message,
+                when=305,
+                data={
+                    "chat_id": imdb_msg.chat_id,
+                    "message_id": imdb_msg.message_id
+                }
+            )
+
+        except Exception as e:
+
+            print(f"IMDb Error: {e}")
+
+    # =========================
     # AUTO DELETE USER QUERY
+    # =========================
+
     context.application.job_queue.run_once(
         delete_user_message,
         when=305,
