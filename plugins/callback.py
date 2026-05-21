@@ -467,6 +467,15 @@ async def button_click(update, context):
             f"query_{query.message.message_id}"
         )
 
+        if not original_query:
+
+            await query.answer(
+                "⚠️ Search Expired",
+                show_alert=True
+            )
+
+            return
+
         language = data.split("_")[1]
 
         new_query = f"{original_query} {language}"
@@ -532,6 +541,15 @@ async def button_click(update, context):
             f"query_{query.message.message_id}"
         )
 
+        if not original_query:
+
+            await query.answer(
+                "⚠️ Search Expired",
+                show_alert=True
+            )
+
+            return
+
         quality = data.split("_")[1]
 
         new_query = f"{original_query} {quality}"
@@ -592,6 +610,15 @@ async def button_click(update, context):
     # PAGINATION
     # =========================
     if data.startswith("page_"):
+
+        if not results:
+
+            await query.answer(
+                "⚠️ Results Expired",
+                show_alert=True
+            )
+
+            return
 
         page = int(
             data.split("_")[1]
