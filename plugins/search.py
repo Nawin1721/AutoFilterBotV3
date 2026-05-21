@@ -17,19 +17,25 @@ RESULTS_PER_PAGE = 10
 # =========================
 def human_size(size):
 
-    size = int(size)
+    try:
 
-    if size >= 1024 * 1024 * 1024:
-        return f"{size / (1024 * 1024 * 1024):.2f} GB"
+        size = int(size)
 
-    elif size >= 1024 * 1024:
-        return f"{size / (1024 * 1024):.2f} MB"
+        if size >= 1024 * 1024 * 1024:
+            return f"{size / (1024 * 1024 * 1024):.2f} GB"
 
-    elif size >= 1024:
-        return f"{size / 1024:.2f} KB"
+        elif size >= 1024 * 1024:
+            return f"{size / (1024 * 1024):.2f} MB"
 
-    else:
-        return f"{size} B"
+        elif size >= 1024:
+            return f"{size / 1024:.2f} KB"
+
+        else:
+            return f"{size} B"
+
+    except:
+
+        return "Unknown"
 
 
 # =========================
@@ -129,6 +135,7 @@ def build_buttons(results, bot_username, page=0):
             "🎥 Quality",
             callback_data="quality_menu"
         )
+
     ])
 
     # FILE BUTTONS
@@ -139,18 +146,22 @@ def build_buttons(results, bot_username, page=0):
         )
 
         buttons.append([
+
             InlineKeyboardButton(
                 text=f"[{size}] {file['file_name'][:45]}",
                 url=f"https://t.me/{bot_username}?start={file['_id']}"
             )
+
         ])
 
     # SEND ALL BUTTON
     buttons.append([
+
         InlineKeyboardButton(
             "📥 Send All Files",
             callback_data=f"sendall_{page}"
         )
+
     ])
 
     # PAGINATION
@@ -163,26 +174,32 @@ def build_buttons(results, bot_username, page=0):
     if page > 0:
 
         nav.append(
+
             InlineKeyboardButton(
                 "⬅️ Back",
                 callback_data=f"page_{page-1}"
             )
+
         )
 
     nav.append(
+
         InlineKeyboardButton(
             f"{page+1}/{total_pages}",
             callback_data="pages"
         )
+
     )
 
     if end < len(results):
 
         nav.append(
+
             InlineKeyboardButton(
                 "Next ➡️",
                 callback_data=f"page_{page+1}"
             )
+
         )
 
     buttons.append(nav)
@@ -254,7 +271,9 @@ async def search_files(update, context):
                     "$options": "i"
                 }
             }
+
         ]
+
     }))
 
     # NO RESULTS
@@ -301,11 +320,6 @@ async def search_files(update, context):
         f"✅ Found {len(results)} Results"
     )
 
-    # SAVE RESULTS
-    context.bot_data[
-        str(msg.chat.id)
-    ] = results
-
     # =========================
     # BUTTONS FIRST
     # =========================
@@ -322,10 +336,20 @@ async def search_files(update, context):
         reply_markup=reply_markup
     )
 
-    # SAVE MESSAGE RESULTS
+    # SAVE RESULTS
     context.bot_data[
         str(sent_message.message_id)
     ] = results
+
+    # SAVE ORIGINAL QUERY
+    context.bot_data[
+        f"query_{sent_message.message_id}"
+    ] = query
+
+    # SAVE SEARCH USER
+    context.user_data[
+        "search_user"
+    ] = msg.from_user.id
 
     # AUTO DELETE RESULT
     context.application.job_queue.run_once(
@@ -341,17 +365,32 @@ async def search_files(update, context):
     # IMDb AFTER BUTTONS
     # =========================
 
-    movie = await get_movie(query)
+    try:
 
-    if movie:
+        movie = await get_movie(query)
 
-        try:
+        if movie:
 
-            imdb_msg = await context.bot.send_photo(
-                chat_id=msg.chat.id,
-                photo=movie["poster"],
-                caption=movie["caption"]
-            )
+            poster = movie.get("poster")
+
+            caption = movie.get("caption")
+
+            # SEND PHOTO
+            if poster:
+
+                imdb_msg = await context.bot.send_photo(
+                    chat_id=msg.chat.id,
+                    photo=poster,
+                    caption=caption[:1024]
+                )
+
+            # SEND TEXT
+            else:
+
+                imdb_msg = await context.bot.send_message(
+                    chat_id=msg.chat.id,
+                    text=caption[:4096]
+                )
 
             # AUTO DELETE IMDb
             context.application.job_queue.run_once(
@@ -363,9 +402,9 @@ async def search_files(update, context):
                 }
             )
 
-        except Exception as e:
+    except Exception as e:
 
-            print(f"IMDb Error: {e}")
+        print(f"IMDb Error: {e}")
 
     # =========================
     # AUTO DELETE USER QUERY
