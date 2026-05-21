@@ -325,6 +325,16 @@ async def search_files(update, context):
                 }
             )
 
+        # AUTO DELETE USER WRONG QUERY
+        context.application.job_queue.run_once(
+            delete_user_message,
+            when=20,
+            data={
+                "chat_id": msg.chat.id,
+                "message_id": msg.message_id
+            }
+        )
+
         return
 
     # =========================
