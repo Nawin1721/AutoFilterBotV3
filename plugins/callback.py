@@ -167,6 +167,14 @@ async def button_click(update, context):
     data = query.data
 
     # =========================
+    # GET RESULTS
+    # =========================
+    results = context.bot_data.get(
+        str(query.message.message_id),
+        []
+    )
+
+    # =========================
     # USER PROTECTION
     # =========================
     search_user = context.user_data.get(
@@ -183,14 +191,6 @@ async def button_click(update, context):
             )
 
             return
-
-    # =========================
-    # GET RESULTS
-    # =========================
-    results = context.user_data.get(
-        "results",
-        []
-    )
 
     # =========================
     # HELP MENU
@@ -463,8 +463,8 @@ async def button_click(update, context):
     # =========================
     if data.startswith("lang_"):
 
-        original_query = context.user_data.get(
-            "original_query"
+        original_query = context.bot_data.get(
+            f"query_{query.message.message_id}"
         )
 
         language = data.split("_")[1]
@@ -506,7 +506,9 @@ async def button_click(update, context):
 
             return
 
-        context.user_data["results"] = results
+        context.bot_data[
+            str(query.message.message_id)
+        ] = results
 
         reply_markup = build_buttons(
             results,
@@ -526,8 +528,8 @@ async def button_click(update, context):
     # =========================
     if data.startswith("quality_"):
 
-        original_query = context.user_data.get(
-            "original_query"
+        original_query = context.bot_data.get(
+            f"query_{query.message.message_id}"
         )
 
         quality = data.split("_")[1]
@@ -569,7 +571,9 @@ async def button_click(update, context):
 
             return
 
-        context.user_data["results"] = results
+        context.bot_data[
+            str(query.message.message_id)
+        ] = results
 
         reply_markup = build_buttons(
             results,
