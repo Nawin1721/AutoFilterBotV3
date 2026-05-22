@@ -6,6 +6,37 @@ from bson import ObjectId
 from config import FORCE_SUB_CHANNEL
 from database import files_col
 
+import random
+
+
+# =========================
+# RANDOM START IMAGES
+# =========================
+START_IMAGES = [
+
+    "AgACAgUAAyEFAASWGOh9AAEMYlxqEIOUXM0ss2QU9RMz-Sz9CRl0EQACNRJrG55mgFSlqRVvcxeaIgEAAwIAA3cAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYl1qEIOiO6Lv-1UXo2GcB3p7yTXx6AACNhJrG55mgFTu5RNfoR4MWAEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYl5qEIOt6SjuDaMcfX1X45G9o0MzogACOBJrG55mgFTQmiq7z4hRawEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYl9qEIO38Nrfag95T7YE5YOLiB35KQACORJrG55mgFS3ggT4RSIMrwEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYmBqEIPIokSpZDF0YZFv1juuQ8uJ0wACOhJrG55mgFTCHS7ujov83wEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYmFqEIPs-SX9ybEiLUZfTl0T-O2xaQACPBJrG55mgFQqKPF_Wx4wmQEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYmJqEIP3wNYY6X9dfWAVHU6CDL9GtgACPRJrG55mgFSiv5HdDNhIxAEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYmNqEIQDZHrL2jMebA3_8RIzzo5jewACPxJrG55mgFQ3hRYIdcw5SAEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYmRqEIQNeJn-_ObAYub2dyIQ2zB2BAACQBJrG55mgFQu-sLn4oUFkQEAAwIAA3kAAzsE",
+
+    "AgACAgUAAyEFAASWGOh9AAEMYmVqEIZJ1Pgxb6-LAc1_aA1zTJ-tPgACVBJrG55mgFSTYD178h4_VgEAAwIAA3kAAzsE"
+
+]
+
+
 # =========================
 # START COMMAND
 # =========================
@@ -31,7 +62,8 @@ async def start(update, context):
             if not file:
 
                 await msg.reply_text(
-                    "❌ File Not Found"
+                    "❌ *File Not Found*",
+                    parse_mode="Markdown"
                 )
 
                 return
@@ -51,9 +83,10 @@ async def start(update, context):
             warning_msg = await context.bot.send_message(
                 chat_id=msg.chat.id,
                 text=(
-                    "⚠️ Please Forward / Save This File Immediately.\n\n"
-                    "🗑 This File Will Be Automatically Deleted After Some Time."
-                )
+                    "⚠️ *Please Forward / Save This File Immediately.*\n\n"
+                    "🗑 *This File Will Be Automatically Deleted After Some Time.*"
+                ),
+                parse_mode="Markdown"
             )
 
             # =========================
@@ -87,7 +120,8 @@ async def start(update, context):
             print(f"ERROR: {e}")
 
             await msg.reply_text(
-                "❌ Bot Unblocked Cheshi Malli Try Cheyyandi."
+                "❌ *Bot Unblocked Cheshi Malli Try Cheyyandi.*",
+                parse_mode="Markdown"
             )
 
             return
@@ -120,22 +154,34 @@ async def start(update, context):
     reply_markup = InlineKeyboardMarkup(buttons)
 
     text = (
-        "🔥 Welcome To Professional AutoFilter Bot 🔥\n\n"
+        "🔥 *Welcome To Professional AutoFilter Bot* 🔥\n\n"
 
-        "🎬 Search Any Movie Name In Group\n"
-        "📥 Files Will Be Sent In PM\n"
-        "⚡ Fast & Smart Search\n"
-        "🎭 IMDb Posters & Details\n"
-        "📄 Pagination + Filters\n"
-        "📤 Send All Files Feature\n\n"
+        "🎬 *Search Any Movie Name In Group*\n"
+        "📥 *Files Will Be Sent In PM*\n"
+        "⚡ *Fast & Smart Search*\n"
+        "🎭 *IMDb Posters & Details*\n"
+        "📄 *Pagination + Filters*\n"
+        "📤 *Send All Files Feature*\n\n"
 
-        "⚠️ PM Files Will Be Auto Deleted After Some Time.\n"
-        "📌 Forward / Save Important Files Immediately."
+        "⚠️ *PM Files Will Be Auto Deleted After Some Time.*\n"
+        "📌 *Forward / Save Important Files Immediately.*"
     )
 
-    await msg.reply_text(
-        text,
-        reply_markup=reply_markup
+    # =========================
+    # RANDOM IMAGE
+    # =========================
+    PHOTO_ID = random.choice(
+        START_IMAGES
+    )
+
+    # =========================
+    # SEND START PHOTO
+    # =========================
+    await msg.reply_photo(
+        photo=PHOTO_ID,
+        caption=text,
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
     )
 
 
@@ -145,7 +191,7 @@ async def start(update, context):
 async def help_command(update, context):
 
     text = (
-        "📚 Bot Commands\n\n"
+        "📚 *Bot Commands*\n\n"
 
         "/start - Start Bot\n"
         "/help - Show Help\n"
@@ -153,12 +199,15 @@ async def help_command(update, context):
         "/stats - Admin Stats\n"
         "/broadcast - Admin Broadcast\n\n"
 
-        "🎬 Simply Search Movie Names In Group\n"
-        "📥 Files Will Be Delivered In PM\n"
-        "📤 Use Send All Button To Get Full Page Files"
+        "🎬 *Simply Search Movie Names In Group*\n"
+        "📥 *Files Will Be Delivered In PM*\n"
+        "📤 *Use Send All Button To Get Full Page Files*"
     )
 
-    await update.message.reply_text(text)
+    await update.message.reply_text(
+        text,
+        parse_mode="Markdown"
+    )
 
 
 # =========================
