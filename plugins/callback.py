@@ -271,8 +271,8 @@ async def button_click(update, context):
         warning_msg = await context.bot.send_message(
             chat_id=query.from_user.id,
             text=(
-                "⚠️ Please Save / Forward Files Immediately.\n\n"
-                "🗑 Files Will Be Deleted Automatically."
+                
+                "🗑 Deleting in 5Min, forward quickly…"
             )
         )
 
@@ -286,8 +286,19 @@ async def button_click(update, context):
             }
         )
 
+        # EDIT STATUS
         await status_msg.edit_text(
             f"✅ Sent {sent} Files In PM"
+        )
+
+        # AUTO DELETE STATUS MESSAGE
+        context.application.job_queue.run_once(
+            delete_pm_file,
+            when=20,
+            data={
+                "chat_id": status_msg.chat_id,
+                "message_id": status_msg.message_id
+            }
         )
 
         return
