@@ -2,8 +2,6 @@ from telegram.ext import Application
 
 from config import BOT_TOKEN
 
-from plugins.start import photo_handler
-
 from plugins.auto_index import auto_index
 from plugins.search import search_handler
 from plugins.callback import callback_handler
