@@ -83,8 +83,7 @@ async def start(update, context):
             warning_msg = await context.bot.send_message(
                 chat_id=msg.chat.id,
                 text=(
-                    "⚠️ *Please Forward / Save This File Immediately.*\n\n"
-                    "🗑 *This File Will Be Automatically Deleted After Some Time.*"
+                    "*🗑 Deleting in 5Min, forward quickly…*"   
                 ),
                 parse_mode="Markdown"
             )
@@ -134,7 +133,7 @@ async def start(update, context):
         [
             InlineKeyboardButton(
                 "📢 Updates",
-                url=f"https://t.me/{FORCE_SUB_CHANNEL}"
+                url="https://t.me/Max_Files77"
             ),
 
             InlineKeyboardButton(
@@ -148,13 +147,20 @@ async def start(update, context):
                 "🎬 Search Movies",
                 url="https://t.me/Movie_Request777"
             )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "💜 Contact Admin",
+                url="https://t.me/Theadminor7_bot"
+            )
         ]
     ]
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
     text = (
-        "🔥 *Welcome To Professional AutoFilter Bot* 🔥\n\n"
+        "🔥 *Welcome To Our AutoFilter Bot* 🔥\n\n"
 
         "🎬 *Search Any Movie Name In Group*\n"
         "📥 *Files Will Be Sent In PM*\n"
