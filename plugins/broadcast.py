@@ -5,6 +5,9 @@ from database import users_col
 ADMIN_ID = 1864719844
 
 
+# =========================
+# BROADCAST
+# =========================
 async def broadcast(update, context):
 
     user_id = update.effective_user.id
@@ -14,45 +17,70 @@ async def broadcast(update, context):
 
         return
 
-    # MESSAGE CHECK
-    if not context.args:
+    message = update.message
 
-        await update.message.reply_text(
-            "Usage:\n/broadcast your message"
+    # =========================
+    # REPLY CHECK
+    # =========================
+    if not message.reply_to_message:
+
+        await message.reply_text(
+            "❌ Reply To Any Message / Photo / Video\n\n"
+            "Then Use:\n"
+            "/broadcast"
         )
 
         return
-
-    message = " ".join(context.args)
 
     users = users_col.find()
 
     success = 0
     failed = 0
 
+    status = await message.reply_text(
+        "📢 Broadcasting Started..."
+    )
+
+    # =========================
     # SEND TO ALL USERS
+    # =========================
     for user in users:
 
         try:
 
-            await context.bot.send_message(
+            await context.bot.copy_message(
+
                 chat_id=user["user_id"],
-                text=message
+
+                from_chat_id=message.chat.id,
+
+                message_id=message.reply_to_message.message_id
+
             )
 
             success += 1
 
-        except:
+        except Exception:
 
             failed += 1
 
-    await update.message.reply_text(
+    # =========================
+    # COMPLETED
+    # =========================
+    await status.edit_text(
+
         f"✅ Broadcast Completed\n\n"
-        f"Success: {success}\n"
-        f"Failed: {failed}"
+
+        f"✅ Success : {success}\n"
+
+        f"❌ Failed : {failed}"
+
     )
 
 
+# =========================
+# HANDLER
+# =========================
 broadcast_handler = CommandHandler(
     "broadcast",
     broadcast
