@@ -102,7 +102,7 @@ def build_buttons(results, bot_username, page=0):
 
         ])
 
-    # SEND ALL
+    # SEND ALL BUTTON
     buttons.append([
 
         InlineKeyboardButton(
@@ -198,16 +198,23 @@ async def button_click(update, context):
     if data == "help_menu":
 
         text = (
-            "📚 Bot Commands\n\n"
+            "📚 *Bot Commands*\n\n"
+
             "/start - Start Bot\n"
             "/help - Help Menu\n"
             "/request - Request Movie\n"
             "/stats - Bot Stats\n"
             "/broadcast - Broadcast\n\n"
-            "🎬 Search Movie Names In Group"
+
+            "🎬 *Search Movie Names In Group*\n"
+            "📥 *Files Will Be Delivered In PM*\n"
+            "📤 *Use Send All To Get Full Page Files*"
         )
 
-        await query.message.edit_text(text)
+        await query.message.reply_text(
+            text,
+            parse_mode="Markdown"
+        )
 
         return
 
@@ -270,10 +277,7 @@ async def button_click(update, context):
         # WARNING MESSAGE
         warning_msg = await context.bot.send_message(
             chat_id=query.from_user.id,
-            text=(
-                
-                "🗑 Deleting in 5Min, forward quickly…"
-            )
+            text="🗑 Deleting in 5Min, forward quickly…"
         )
 
         # AUTO DELETE WARNING
@@ -291,7 +295,7 @@ async def button_click(update, context):
             f"✅ Sent {sent} Files In PM"
         )
 
-        # AUTO DELETE STATUS MESSAGE
+        # AUTO DELETE STATUS
         context.application.job_queue.run_once(
             delete_pm_file,
             when=20,
