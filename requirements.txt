@@ -1,4 +1,5 @@
 python-telegram-bot[job-queue]
+motor
 pymongo
 requests
 rapidfuzz
