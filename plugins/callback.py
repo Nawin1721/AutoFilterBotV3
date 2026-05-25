@@ -1,7 +1,10 @@
 from telegram.ext import CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest
 
 from database import files_col
+
+import asyncio
 
 RESULTS_PER_PAGE = 10
 
@@ -33,34 +36,35 @@ def human_size(size):
 
 
 # =========================
-# SEARCH PATTERN
+# SAFE EDIT
 # =========================
-def create_search_pattern(query):
+async def safe_edit(message, text, reply_markup=None):
 
-    query = query.lower()
+    try:
 
-    query = (
-        query
-        .replace("(", " ")
-        .replace(")", " ")
-        .replace("[", " ")
-        .replace("]", " ")
-        .replace(".", " ")
-        .replace("_", " ")
-        .replace("-", " ")
-    )
+        await message.edit_text(
+            text=text,
+            reply_markup=reply_markup
+        )
 
-    words = query.split()
+    except BadRequest as e:
 
-    pattern = ".*".join(words)
+        if "Message is not modified" in str(e):
+            pass
 
-    return pattern
+        else:
+            print(e)
 
 
 # =========================
 # BUILD BUTTONS
 # =========================
-def build_buttons(results, bot_username, page=0):
+def build_buttons(
+    results,
+    bot_username,
+    search_id,
+    page=0
+):
 
     start = page * RESULTS_PER_PAGE
     end = start + RESULTS_PER_PAGE
@@ -74,12 +78,12 @@ def build_buttons(results, bot_username, page=0):
 
         InlineKeyboardButton(
             "🌐 Language",
-            callback_data="language_menu"
+            callback_data=f"language_{search_id}"
         ),
 
         InlineKeyboardButton(
             "🎥 Quality",
-            callback_data="quality_menu"
+            callback_data=f"quality_{search_id}"
         )
 
     ])
@@ -102,12 +106,12 @@ def build_buttons(results, bot_username, page=0):
 
         ])
 
-    # SEND ALL BUTTON
+    # SEND ALL
     buttons.append([
 
         InlineKeyboardButton(
             "📥 Send All Files",
-            callback_data=f"sendall_{page}"
+            callback_data=f"sendall_{search_id}_{page}"
         )
 
     ])
@@ -125,7 +129,7 @@ def build_buttons(results, bot_username, page=0):
 
             InlineKeyboardButton(
                 "⬅️ Back",
-                callback_data=f"page_{page-1}"
+                callback_data=f"page_{search_id}_{page-1}"
             )
 
         )
@@ -145,7 +149,7 @@ def build_buttons(results, bot_username, page=0):
 
             InlineKeyboardButton(
                 "Next ➡️",
-                callback_data=f"page_{page+1}"
+                callback_data=f"page_{search_id}_{page+1}"
             )
 
         )
@@ -153,6 +157,28 @@ def build_buttons(results, bot_username, page=0):
     buttons.append(nav)
 
     return InlineKeyboardMarkup(buttons)
+
+
+# =========================
+# DELETE PM FILE
+# =========================
+async def delete_pm_file(context):
+
+    if not context.job:
+        return
+
+    data = context.job.data
+
+    try:
+
+        await context.bot.delete_message(
+            chat_id=data["chat_id"],
+            message_id=data["message_id"]
+        )
+
+    except:
+
+        pass
 
 
 # =========================
@@ -166,64 +192,21 @@ async def button_click(update, context):
 
     data = query.data
 
-    # =========================
-    # GET RESULTS
-    # =========================
-    results = context.bot_data.get(
-        str(query.message.message_id),
-        []
-    )
 
     # =========================
-    # USER PROTECTION
+    # PAGINATION
     # =========================
-    search_user = context.user_data.get(
-        "search_user"
-    )
+    if data.startswith("page_"):
 
-    if search_user:
+        parts = data.split("_")
 
-        if search_user != query.from_user.id:
+        search_id = parts[1]
 
-            await query.answer(
-                "❌ This Search Belongs To Another User",
-                show_alert=True
-            )
+        page = int(parts[2])
 
-            return
+        cache = context.bot_data.get(search_id)
 
-    # =========================
-    # HELP MENU
-    # =========================
-    if data == "help_menu":
-
-        text = (
-            "📚 *Bot Commands*\n\n"
-
-            "/start - Start Bot\n"
-            "/help - Help Menu\n"
-            "/request - Request Movie\n"
-            "/stats - Bot Stats\n"
-            "/broadcast - Broadcast\n\n"
-
-            "🎬 *Search Movie Names In Group*\n"
-            "📥 *Files Will Be Delivered In PM*\n"
-            "📤 *Use Send All To Get Full Page Files*"
-        )
-
-        await query.message.reply_text(
-            text,
-            parse_mode="Markdown"
-        )
-
-        return
-
-    # =========================
-    # SEND ALL
-    # =========================
-    if data.startswith("sendall_"):
-
-        if not results:
+        if not cache:
 
             await query.answer(
                 "⚠️ Search Expired",
@@ -232,9 +215,67 @@ async def button_click(update, context):
 
             return
 
-        page = int(
-            data.split("_")[1]
+        # USER PROTECTION
+        if cache["user_id"] != query.from_user.id:
+
+            await query.answer(
+                "❌ This Search Belongs To Another User",
+                show_alert=True
+            )
+
+            return
+
+        results = cache["results"]
+
+        reply_markup = build_buttons(
+            results,
+            context.bot.username,
+            search_id,
+            page
         )
+
+        await safe_edit(
+            query.message,
+            f"🔍 Search Results\n📄 Page: {page+1}",
+            reply_markup
+        )
+
+        return
+
+
+    # =========================
+    # SEND ALL
+    # =========================
+    if data.startswith("sendall_"):
+
+        parts = data.split("_")
+
+        search_id = parts[1]
+
+        page = int(parts[2])
+
+        cache = context.bot_data.get(search_id)
+
+        if not cache:
+
+            await query.answer(
+                "⚠️ Search Expired",
+                show_alert=True
+            )
+
+            return
+
+        # USER PROTECTION
+        if cache["user_id"] != query.from_user.id:
+
+            await query.answer(
+                "❌ This Search Belongs To Another User",
+                show_alert=True
+            )
+
+            return
+
+        results = cache["results"]
 
         start = page * RESULTS_PER_PAGE
         end = start + RESULTS_PER_PAGE
@@ -258,7 +299,6 @@ async def button_click(update, context):
                     message_id=file["message_id"]
                 )
 
-                # AUTO DELETE PM FILE
                 context.application.job_queue.run_once(
                     delete_pm_file,
                     when=305,
@@ -274,13 +314,11 @@ async def button_click(update, context):
 
                 print(e)
 
-        # WARNING MESSAGE
         warning_msg = await context.bot.send_message(
             chat_id=query.from_user.id,
             text="🗑 Deleting in 5Min, forward quickly…"
         )
 
-        # AUTO DELETE WARNING
         context.application.job_queue.run_once(
             delete_pm_file,
             when=305,
@@ -290,12 +328,11 @@ async def button_click(update, context):
             }
         )
 
-        # EDIT STATUS
-        await status_msg.edit_text(
+        await safe_edit(
+            status_msg,
             f"✅ Sent {sent} Files In PM"
         )
 
-        # AUTO DELETE STATUS
         context.application.job_queue.run_once(
             delete_pm_file,
             when=20,
@@ -306,375 +343,6 @@ async def button_click(update, context):
         )
 
         return
-
-    # =========================
-    # LANGUAGE MENU
-    # =========================
-    if data == "language_menu":
-
-        buttons = [
-
-            [
-
-                InlineKeyboardButton(
-                    "English",
-                    callback_data="lang_english"
-                ),
-
-                InlineKeyboardButton(
-                    "Hindi",
-                    callback_data="lang_hindi"
-                )
-
-            ],
-
-            [
-
-                InlineKeyboardButton(
-                    "Tamil",
-                    callback_data="lang_tamil"
-                ),
-
-                InlineKeyboardButton(
-                    "Telugu",
-                    callback_data="lang_telugu"
-                )
-
-            ],
-
-            [
-
-                InlineKeyboardButton(
-                    "🗑️ Clear",
-                    callback_data="clear_results"
-                ),
-
-                InlineKeyboardButton(
-                    "⬅️ Back",
-                    callback_data="back_results"
-                )
-
-            ]
-
-        ]
-
-        await query.message.edit_text(
-            "🌐 Choose Language",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-        return
-
-    # =========================
-    # QUALITY MENU
-    # =========================
-    if data == "quality_menu":
-
-        buttons = [
-
-            [
-
-                InlineKeyboardButton(
-                    "360p",
-                    callback_data="quality_360p"
-                ),
-
-                InlineKeyboardButton(
-                    "480p",
-                    callback_data="quality_480p"
-                )
-
-            ],
-
-            [
-
-                InlineKeyboardButton(
-                    "576p",
-                    callback_data="quality_576p"
-                ),
-
-                InlineKeyboardButton(
-                    "720p",
-                    callback_data="quality_720p"
-                )
-
-            ],
-
-            [
-
-                InlineKeyboardButton(
-                    "1080p",
-                    callback_data="quality_1080p"
-                ),
-
-                InlineKeyboardButton(
-                    "2160p",
-                    callback_data="quality_2160p"
-                )
-
-            ],
-
-            [
-
-                InlineKeyboardButton(
-                    "🗑️ Clear",
-                    callback_data="clear_results"
-                ),
-
-                InlineKeyboardButton(
-                    "⬅️ Back",
-                    callback_data="back_results"
-                )
-
-            ]
-
-        ]
-
-        await query.message.edit_text(
-            "🎥 Choose Quality",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-        return
-
-    # =========================
-    # CLEAR RESULTS
-    # =========================
-    if data == "clear_results":
-
-        reply_markup = build_buttons(
-            results,
-            context.bot.username,
-            page=0
-        )
-
-        await query.message.edit_text(
-            "🔍 Search Results\n📄 Page: 1",
-            reply_markup=reply_markup
-        )
-
-        return
-
-    # =========================
-    # BACK RESULTS
-    # =========================
-    if data == "back_results":
-
-        reply_markup = build_buttons(
-            results,
-            context.bot.username,
-            page=0
-        )
-
-        await query.message.edit_text(
-            "🔍 Search Results\n📄 Page: 1",
-            reply_markup=reply_markup
-        )
-
-        return
-
-    # =========================
-    # LANGUAGE FILTER
-    # =========================
-    if data.startswith("lang_"):
-
-        original_query = context.bot_data.get(
-            f"query_{query.message.message_id}"
-        )
-
-        if not original_query:
-
-            await query.answer(
-                "⚠️ Search Expired",
-                show_alert=True
-            )
-
-            return
-
-        language = data.split("_")[1]
-
-        new_query = f"{original_query} {language}"
-
-        pattern = create_search_pattern(
-            new_query
-        )
-
-        results = list(files_col.find({
-
-            "$or": [
-
-                {
-                    "search_text": {
-                        "$regex": pattern,
-                        "$options": "i"
-                    }
-                },
-
-                {
-                    "caption": {
-                        "$regex": pattern,
-                        "$options": "i"
-                    }
-                }
-
-            ]
-
-        }))
-
-        if not results:
-
-            await query.answer(
-                "❌ No Results Found",
-                show_alert=True
-            )
-
-            return
-
-        context.bot_data[
-            str(query.message.message_id)
-        ] = results
-
-        reply_markup = build_buttons(
-            results,
-            context.bot.username,
-            page=0
-        )
-
-        await query.message.edit_text(
-            f"🌐 Results For: {language.upper()}\n📄 Page: 1",
-            reply_markup=reply_markup
-        )
-
-        return
-
-    # =========================
-    # QUALITY FILTER
-    # =========================
-    if data.startswith("quality_"):
-
-        original_query = context.bot_data.get(
-            f"query_{query.message.message_id}"
-        )
-
-        if not original_query:
-
-            await query.answer(
-                "⚠️ Search Expired",
-                show_alert=True
-            )
-
-            return
-
-        quality = data.split("_")[1]
-
-        new_query = f"{original_query} {quality}"
-
-        pattern = create_search_pattern(
-            new_query
-        )
-
-        results = list(files_col.find({
-
-            "$or": [
-
-                {
-                    "search_text": {
-                        "$regex": pattern,
-                        "$options": "i"
-                    }
-                },
-
-                {
-                    "caption": {
-                        "$regex": pattern,
-                        "$options": "i"
-                    }
-                }
-
-            ]
-
-        }))
-
-        if not results:
-
-            await query.answer(
-                "❌ No Results Found",
-                show_alert=True
-            )
-
-            return
-
-        context.bot_data[
-            str(query.message.message_id)
-        ] = results
-
-        reply_markup = build_buttons(
-            results,
-            context.bot.username,
-            page=0
-        )
-
-        await query.message.edit_text(
-            f"🎥 Results For: {quality}\n📄 Page: 1",
-            reply_markup=reply_markup
-        )
-
-        return
-
-    # =========================
-    # PAGINATION
-    # =========================
-    if data.startswith("page_"):
-
-        if not results:
-
-            await query.answer(
-                "⚠️ Results Expired",
-                show_alert=True
-            )
-
-            return
-
-        page = int(
-            data.split("_")[1]
-        )
-
-        reply_markup = build_buttons(
-            results,
-            context.bot.username,
-            page=page
-        )
-
-        await query.message.edit_text(
-            f"🔍 Search Results\n📄 Page: {page+1}",
-            reply_markup=reply_markup
-        )
-
-        return
-
-
-# =========================
-# DELETE PM FILE
-# =========================
-async def delete_pm_file(context):
-
-    if not context.job:
-        return
-
-    job = context.job
-
-    data = job.data
-
-    try:
-
-        await context.bot.delete_message(
-            chat_id=data["chat_id"],
-            message_id=data["message_id"]
-        )
-
-    except Exception as e:
-
-        print(e)
 
 
 # =========================
