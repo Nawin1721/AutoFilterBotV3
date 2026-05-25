@@ -1,33 +1,52 @@
-import requests
+import aiohttp
 
 API_KEY = "ae495bd1"
 
 
+# =========================
+# GET MOVIE
+# =========================
 async def get_movie(query):
 
     try:
 
-        url = f"http://www.omdbapi.com/?t={query}&apikey={API_KEY}"
+        url = (
+            f"http://www.omdbapi.com/"
+            f"?t={query}&apikey={API_KEY}"
+        )
 
-        response = requests.get(url)
+        async with aiohttp.ClientSession() as session:
 
-        data = response.json()
+            async with session.get(url) as response:
 
-        if data["Response"] == "False":
+                data = await response.json()
+
+        if data.get("Response") == "False":
 
             return None
 
-        poster = data["Poster"]
+        poster = data.get("Poster")
+
+        if poster == "N/A":
+            poster = None
 
         caption = (
-            f"🎬 {data['Title']} ({data['Year']})\n"
-            f"⭐ Rating: {data['imdbRating']}/10\n"
-            f"🎭 Genre: {data['Genre']}"
+            f"🎬 {data.get('Title', 'Unknown')} "
+            f"({data.get('Year', 'N/A')})\n"
+
+            f"⭐ Rating: "
+            f"{data.get('imdbRating', 'N/A')}/10\n"
+
+            f"🎭 Genre: "
+            f"{data.get('Genre', 'N/A')}"
         )
 
         return {
+
             "poster": poster,
+
             "caption": caption
+
         }
 
     except Exception as e:
