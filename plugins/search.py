@@ -10,7 +10,6 @@ from rapidfuzz import process
 
 import uuid
 import time
-import asyncio
 
 
 RESULTS_PER_PAGE = 10
@@ -193,51 +192,6 @@ def build_buttons(
 
 
 # =========================
-# IMDb TASK
-# =========================
-async def send_imdb(context, chat_id, query):
-
-    try:
-
-        movie = await get_movie(query)
-
-        if not movie:
-            return
-
-        poster = movie.get("poster")
-
-        caption = movie.get("caption")
-
-        if poster:
-
-            imdb_msg = await context.bot.send_photo(
-                chat_id=chat_id,
-                photo=poster,
-                caption=caption[:1024]
-            )
-
-        else:
-
-            imdb_msg = await context.bot.send_message(
-                chat_id=chat_id,
-                text=caption[:4096]
-            )
-
-        context.application.job_queue.run_once(
-            delete_message,
-            when=305,
-            data={
-                "chat_id": imdb_msg.chat_id,
-                "message_id": imdb_msg.message_id
-            }
-        )
-
-    except Exception as e:
-
-        print(f"IMDb Error: {e}")
-
-
-# =========================
 # SEARCH FILES
 # =========================
 async def search_files(update, context):
@@ -377,18 +331,6 @@ async def search_files(update, context):
 
 
     # =========================
-    # IMDb BACKGROUND TASK
-    # =========================
-    asyncio.create_task(
-        send_imdb(
-            context,
-            msg.chat.id,
-            query
-        )
-    )
-
-
-    # =========================
     # FOUND MESSAGE
     # =========================
     await search_msg.edit_text(
@@ -439,12 +381,51 @@ async def search_files(update, context):
 
 
     # =========================
-    # RESULT MESSAGE
+    # IMDb FIRST
     # =========================
-    sent_message = await msg.reply_text(
-        "🔍 Search Results\n📄 Page: 1",
-        reply_markup=reply_markup
-    )
+    movie = await get_movie(query)
+
+
+    # =========================
+    # SEND IMDb + BUTTONS
+    # =========================
+    if movie:
+
+        poster = movie.get("poster")
+
+        caption = movie.get("caption")
+
+        text = (
+
+            f"{caption}\n\n"
+
+            f"🔎 Search Results\n"
+
+            f"📄 Page: 1"
+
+        )
+
+        if poster:
+
+            sent_message = await msg.reply_photo(
+                photo=poster,
+                caption=text,
+                reply_markup=reply_markup
+            )
+
+        else:
+
+            sent_message = await msg.reply_text(
+                text,
+                reply_markup=reply_markup
+            )
+
+    else:
+
+        sent_message = await msg.reply_text(
+            "🔎 Search Results\n📄 Page: 1",
+            reply_markup=reply_markup
+        )
 
 
     # =========================
