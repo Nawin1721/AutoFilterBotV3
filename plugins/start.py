@@ -38,6 +38,28 @@ START_IMAGES = [
 
 
 # =========================
+# DELETE PM FILE
+# =========================
+async def delete_pm_file(context):
+
+    if not context.job:
+        return
+
+    data = context.job.data
+
+    try:
+
+        await context.bot.delete_message(
+            chat_id=data["chat_id"],
+            message_id=data["message_id"]
+        )
+
+    except:
+
+        pass
+
+
+# =========================
 # START COMMAND
 # =========================
 async def start(update, context):
@@ -45,6 +67,7 @@ async def start(update, context):
     msg = update.message
 
     args = context.args
+
 
     # =========================
     # FILE START PARAMETER
@@ -55,21 +78,22 @@ async def start(update, context):
 
         try:
 
-            file = files_col.find_one({
+            # ✅ FIXED WITH AWAIT
+            file = await files_col.find_one({
                 "_id": ObjectId(file_id)
             })
 
             if not file:
 
                 await msg.reply_text(
-                    "❌ *File Not Found*",
-                    parse_mode="Markdown"
+                    "❌ File Not Found"
                 )
 
                 return
 
+
             # =========================
-            # SEND FILE USING COPY MESSAGE
+            # SEND FILE
             # =========================
             sent_file = await context.bot.copy_message(
                 chat_id=msg.chat.id,
@@ -77,19 +101,18 @@ async def start(update, context):
                 message_id=file["message_id"]
             )
 
+
             # =========================
             # WARNING MESSAGE
             # =========================
             warning_msg = await context.bot.send_message(
                 chat_id=msg.chat.id,
-                text=(
-                    "*🗑 Deleting in 5Min, forward quickly…*"   
-                ),
-                parse_mode="Markdown"
+                text="🗑 Deleting in 5Min, forward quickly…"
             )
 
+
             # =========================
-            # AUTO DELETE FILE
+            # DELETE FILE
             # =========================
             context.application.job_queue.run_once(
                 delete_pm_file,
@@ -100,8 +123,9 @@ async def start(update, context):
                 }
             )
 
+
             # =========================
-            # AUTO DELETE WARNING
+            # DELETE WARNING
             # =========================
             context.application.job_queue.run_once(
                 delete_pm_file,
@@ -114,16 +138,17 @@ async def start(update, context):
 
             return
 
+
         except Exception as e:
 
-            print(f"ERROR: {e}")
+            print(f"START FILE ERROR: {e}")
 
             await msg.reply_text(
-                "❌ *Bot Unblocked Cheshi Malli Try Cheyyandi.*",
-                parse_mode="Markdown"
+                "❌ Error Sending File"
             )
 
             return
+
 
     # =========================
     # NORMAL START
@@ -157,37 +182,50 @@ async def start(update, context):
         ]
     ]
 
-    reply_markup = InlineKeyboardMarkup(buttons)
+
+    reply_markup = InlineKeyboardMarkup(
+        buttons
+    )
+
 
     text = (
-        "🔥 *Welcome To Our AutoFilter Bot* 🔥\n\n"
 
-        "🎬 *Search Any Movie Name In Group*\n"
-        "📥 *Files Will Be Sent In PM*\n"
-        "⚡ *Fast & Smart Search*\n"
-        "🎭 *IMDb Posters & Details*\n"
-        "📄 *Pagination + Filters*\n"
-        "📤 *Send All Files Feature*\n\n"
+        "🔥 Welcome To Our AutoFilter Bot 🔥\n\n"
 
-        "⚠️ *PM Files Will Be Auto Deleted After Some Time.*\n"
-        "📌 *Forward / Save Important Files Immediately.*"
+        "🎬 Search Any Movie Name In Group\n"
+
+        "📥 Files Will Be Sent In PM\n"
+
+        "⚡ Fast & Smart Search\n"
+
+        "🎭 IMDb Posters & Details\n"
+
+        "📄 Pagination + Filters\n"
+
+        "📤 Send All Files Feature\n\n"
+
+        "⚠️ PM Files Will Be Auto Deleted After Some Time.\n"
+
+        "📌 Forward / Save Important Files Immediately."
+
     )
+
 
     # =========================
     # RANDOM IMAGE
     # =========================
-    PHOTO_ID = random.choice(
+    photo_id = random.choice(
         START_IMAGES
     )
+
 
     # =========================
     # SEND START PHOTO
     # =========================
     await msg.reply_photo(
-        photo=PHOTO_ID,
+        photo=photo_id,
         caption=text,
-        reply_markup=reply_markup,
-        parse_mode="Markdown"
+        reply_markup=reply_markup
     )
 
 
@@ -197,47 +235,30 @@ async def start(update, context):
 async def help_command(update, context):
 
     text = (
-        "📚 *Bot Commands*\n\n"
+
+        "📚 Bot Commands\n\n"
 
         "/start - Start Bot\n"
+
         "/help - Show Help\n"
+
         "/request - Request Movie\n"
+
         "/stats - Admin Stats\n"
+
         "/broadcast - Admin Broadcast\n\n"
 
-        "🎬 *Simply Search Movie Names In Group*\n"
-        "📥 *Files Will Be Delivered In PM*\n"
-        "📤 *Use Send All Button To Get Full Page Files*"
+        "🎬 Simply Search Movie Names In Group\n"
+
+        "📥 Files Will Be Delivered In PM\n"
+
+        "📤 Use Send All Button To Get Full Page Files"
+
     )
 
     await update.message.reply_text(
-        text,
-        parse_mode="Markdown"
+        text
     )
-
-
-# =========================
-# DELETE PM FILE
-# =========================
-async def delete_pm_file(context):
-
-    if not context.job:
-        return
-
-    job = context.job
-
-    data = job.data
-
-    try:
-
-        await context.bot.delete_message(
-            chat_id=data["chat_id"],
-            message_id=data["message_id"]
-        )
-
-    except:
-
-        pass
 
 
 # =========================
