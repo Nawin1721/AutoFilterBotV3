@@ -5,3 +5,4 @@ requests
 rapidfuzz
 dnspython
 httpx
+aiohttp
