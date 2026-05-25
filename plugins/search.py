@@ -2,12 +2,16 @@ from telegram.ext import MessageHandler, filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from database import files_col, users_col
-from config import GROUP_ID
 
 from plugins.force_sub import check_sub, force_sub_message
 from plugins.imdb import get_movie
 
 from rapidfuzz import process
+
+import uuid
+import time
+import asyncio
+
 
 RESULTS_PER_PAGE = 10
 
@@ -39,7 +43,7 @@ def human_size(size):
 
 
 # =========================
-# SMART SEARCH PATTERN
+# SEARCH PATTERN
 # =========================
 def create_search_pattern(query):
 
@@ -71,33 +75,7 @@ async def delete_message(context):
     if not context.job:
         return
 
-    job = context.job
-
-    data = job.data
-
-    try:
-
-        await context.bot.delete_message(
-            chat_id=data["chat_id"],
-            message_id=data["message_id"]
-        )
-
-    except:
-
-        pass
-
-
-# =========================
-# DELETE USER MESSAGE
-# =========================
-async def delete_user_message(context):
-
-    if not context.job:
-        return
-
-    job = context.job
-
-    data = job.data
+    data = context.job.data
 
     try:
 
@@ -114,7 +92,12 @@ async def delete_user_message(context):
 # =========================
 # BUILD BUTTONS
 # =========================
-def build_buttons(results, bot_username, page=0):
+def build_buttons(
+    results,
+    bot_username,
+    search_id,
+    page=0
+):
 
     start = page * RESULTS_PER_PAGE
     end = start + RESULTS_PER_PAGE
@@ -123,17 +106,17 @@ def build_buttons(results, bot_username, page=0):
 
     buttons = []
 
-    # TOP BUTTONS
+    # FILTER BUTTONS
     buttons.append([
 
         InlineKeyboardButton(
             "🌐 Language",
-            callback_data="language_menu"
+            callback_data=f"language_{search_id}"
         ),
 
         InlineKeyboardButton(
             "🎥 Quality",
-            callback_data="quality_menu"
+            callback_data=f"quality_{search_id}"
         )
 
     ])
@@ -145,10 +128,12 @@ def build_buttons(results, bot_username, page=0):
             file.get("file_size", 0)
         )
 
+        text = f"[{size}] {file['file_name'][:45]}"
+
         buttons.append([
 
             InlineKeyboardButton(
-                text=f"[{size}] {file['file_name'][:45]}",
+                text=text,
                 url=f"https://t.me/{bot_username}?start={file['_id']}"
             )
 
@@ -159,7 +144,7 @@ def build_buttons(results, bot_username, page=0):
 
         InlineKeyboardButton(
             "📥 Send All Files",
-            callback_data=f"sendall_{page}"
+            callback_data=f"sendall_{search_id}_{page}"
         )
 
     ])
@@ -177,7 +162,7 @@ def build_buttons(results, bot_username, page=0):
 
             InlineKeyboardButton(
                 "⬅️ Back",
-                callback_data=f"page_{page-1}"
+                callback_data=f"page_{search_id}_{page-1}"
             )
 
         )
@@ -197,7 +182,7 @@ def build_buttons(results, bot_username, page=0):
 
             InlineKeyboardButton(
                 "Next ➡️",
-                callback_data=f"page_{page+1}"
+                callback_data=f"page_{search_id}_{page+1}"
             )
 
         )
@@ -205,6 +190,51 @@ def build_buttons(results, bot_username, page=0):
     buttons.append(nav)
 
     return InlineKeyboardMarkup(buttons)
+
+
+# =========================
+# IMDb TASK
+# =========================
+async def send_imdb(context, chat_id, query):
+
+    try:
+
+        movie = await get_movie(query)
+
+        if not movie:
+            return
+
+        poster = movie.get("poster")
+
+        caption = movie.get("caption")
+
+        if poster:
+
+            imdb_msg = await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=poster,
+                caption=caption[:1024]
+            )
+
+        else:
+
+            imdb_msg = await context.bot.send_message(
+                chat_id=chat_id,
+                text=caption[:4096]
+            )
+
+        context.application.job_queue.run_once(
+            delete_message,
+            when=305,
+            data={
+                "chat_id": imdb_msg.chat_id,
+                "message_id": imdb_msg.message_id
+            }
+        )
+
+    except Exception as e:
+
+        print(f"IMDb Error: {e}")
 
 
 # =========================
@@ -224,20 +254,26 @@ async def search_files(update, context):
 
     print(f"Searching: {query}")
 
-    # SAVE USER
     user_id = msg.from_user.id
 
-    existing_user = users_col.find_one({
+
+    # =========================
+    # SAVE USER
+    # =========================
+    existing_user = await users_col.find_one({
         "user_id": user_id
     })
 
     if not existing_user:
 
-        users_col.insert_one({
+        await users_col.insert_one({
             "user_id": user_id
         })
 
+
+    # =========================
     # FORCE SUB
+    # =========================
     joined = await check_sub(update, context)
 
     if not joined:
@@ -245,16 +281,25 @@ async def search_files(update, context):
         await force_sub_message(msg)
         return
 
+
+    # =========================
     # SEARCHING MESSAGE
+    # =========================
     search_msg = await msg.reply_text(
         "🔍 Searching..."
     )
 
+
+    # =========================
     # SEARCH PATTERN
+    # =========================
     search_pattern = create_search_pattern(query)
 
+
+    # =========================
     # DATABASE SEARCH
-    results = list(files_col.find({
+    # =========================
+    results = await files_col.find({
 
         "$or": [
 
@@ -274,7 +319,8 @@ async def search_files(update, context):
 
         ]
 
-    }))
+    }).to_list(length=100)
+
 
     # =========================
     # NO RESULTS
@@ -285,7 +331,6 @@ async def search_files(update, context):
             "❌ No Results Found"
         )
 
-        # AUTO DELETE NO RESULT
         context.application.job_queue.run_once(
             delete_message,
             when=20,
@@ -295,7 +340,11 @@ async def search_files(update, context):
             }
         )
 
-        all_files = list(files_col.find())
+        # SUGGESTION SEARCH
+        all_files = await files_col.find(
+            {},
+            {"file_name": 1}
+        ).to_list(length=300)
 
         movie_names = [
             x["file_name"]
@@ -315,7 +364,6 @@ async def search_files(update, context):
                 f"❓ Did You Mean:\n\n{suggestion}"
             )
 
-            # AUTO DELETE SUGGESTION
             context.application.job_queue.run_once(
                 delete_message,
                 when=20,
@@ -325,72 +373,28 @@ async def search_files(update, context):
                 }
             )
 
-        # AUTO DELETE USER WRONG QUERY
-        context.application.job_queue.run_once(
-            delete_user_message,
-            when=20,
-            data={
-                "chat_id": msg.chat.id,
-                "message_id": msg.message_id
-            }
-        )
-
         return
 
-    # =========================
-    # IMDb FIRST
-    # =========================
-
-    try:
-
-        movie = await get_movie(query)
-
-        if movie:
-
-            poster = movie.get("poster")
-
-            caption = movie.get("caption")
-
-            # SEND PHOTO
-            if poster:
-
-                imdb_msg = await context.bot.send_photo(
-                    chat_id=msg.chat.id,
-                    photo=poster,
-                    caption=caption[:1024]
-                )
-
-            # SEND TEXT
-            else:
-
-                imdb_msg = await context.bot.send_message(
-                    chat_id=msg.chat.id,
-                    text=caption[:4096]
-                )
-
-            # AUTO DELETE IMDb
-            context.application.job_queue.run_once(
-                delete_message,
-                when=305,
-                data={
-                    "chat_id": imdb_msg.chat_id,
-                    "message_id": imdb_msg.message_id
-                }
-            )
-
-    except Exception as e:
-
-        print(f"IMDb Error: {e}")
 
     # =========================
-    # FOUND RESULTS
+    # IMDb BACKGROUND TASK
     # =========================
+    asyncio.create_task(
+        send_imdb(
+            context,
+            msg.chat.id,
+            query
+        )
+    )
 
+
+    # =========================
+    # FOUND MESSAGE
+    # =========================
     await search_msg.edit_text(
         f"✅ Found {len(results)} Results"
     )
 
-    # AUTO DELETE FOUND MESSAGE
     context.application.job_queue.run_once(
         delete_message,
         when=20,
@@ -400,54 +404,58 @@ async def search_files(update, context):
         }
     )
 
-    # =========================
-    # BUTTONS AFTER IMDb
-    # =========================
 
+    # =========================
+    # SEARCH ID
+    # =========================
+    search_id = uuid.uuid4().hex[:8]
+
+
+    # =========================
+    # SAVE CACHE
+    # =========================
+    context.bot_data[search_id] = {
+
+        "results": results,
+
+        "query": query,
+
+        "user_id": msg.from_user.id,
+
+        "time": time.time()
+
+    }
+
+
+    # =========================
+    # BUTTONS
+    # =========================
     reply_markup = build_buttons(
         results,
         context.bot.username,
+        search_id,
         page=0
     )
 
+
+    # =========================
     # RESULT MESSAGE
+    # =========================
     sent_message = await msg.reply_text(
         "🔍 Search Results\n📄 Page: 1",
         reply_markup=reply_markup
     )
 
-    # SAVE RESULTS
-    context.bot_data[
-        str(sent_message.message_id)
-    ] = results
 
-    # SAVE ORIGINAL QUERY
-    context.bot_data[
-        f"query_{sent_message.message_id}"
-    ] = query
-
-    # SAVE SEARCH USER
-    context.user_data[
-        "search_user"
-    ] = msg.from_user.id
-
-    # AUTO DELETE RESULT
+    # =========================
+    # AUTO DELETE RESULTS
+    # =========================
     context.application.job_queue.run_once(
         delete_message,
         when=305,
         data={
             "chat_id": sent_message.chat_id,
             "message_id": sent_message.message_id
-        }
-    )
-
-    # AUTO DELETE USER QUERY
-    context.application.job_queue.run_once(
-        delete_user_message,
-        when=305,
-        data={
-            "chat_id": msg.chat.id,
-            "message_id": msg.message_id
         }
     )
 
