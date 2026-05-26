@@ -304,6 +304,136 @@ async def button_click(update, context):
 
 
     # =========================
+    # LANGUAGE FILTER
+    # =========================
+    if data.startswith("language_"):
+
+        search_id = data.split("_")[1]
+
+        cache = context.bot_data.get(search_id)
+
+        if not cache:
+
+            await query.answer(
+                "⚠️ Search Expired",
+                show_alert=True
+            )
+
+            return
+
+        results = cache["results"]
+
+        languages = set()
+
+        for file in results:
+
+            name = file["file_name"].lower()
+
+            if "telugu" in name:
+                languages.add("Telugu")
+
+            if "tamil" in name:
+                languages.add("Tamil")
+
+            if "hindi" in name:
+                languages.add("Hindi")
+
+            if "malayalam" in name:
+                languages.add("Malayalam")
+
+            if "kannada" in name:
+                languages.add("Kannada")
+
+            if "english" in name:
+                languages.add("English")
+
+        if not languages:
+
+            text = "🌐 Languages Not Found"
+
+        else:
+
+            text = "🌐 Available Languages\n\n"
+
+            for lang in sorted(languages):
+
+                text += f"• {lang}\n"
+
+        await safe_edit(
+            query.message,
+            text,
+            query.message.reply_markup
+        )
+
+        return
+
+
+    # =========================
+    # QUALITY FILTER
+    # =========================
+    if data.startswith("quality_"):
+
+        search_id = data.split("_")[1]
+
+        cache = context.bot_data.get(search_id)
+
+        if not cache:
+
+            await query.answer(
+                "⚠️ Search Expired",
+                show_alert=True
+            )
+
+            return
+
+        results = cache["results"]
+
+        qualities = set()
+
+        for file in results:
+
+            name = file["file_name"].lower()
+
+            if "480p" in name:
+                qualities.add("480p")
+
+            if "720p" in name:
+                qualities.add("720p")
+
+            if "1080p" in name:
+                qualities.add("1080p")
+
+            if "2160p" in name:
+                qualities.add("2160p")
+
+            if "x264" in name:
+                qualities.add("x264")
+
+            if "x265" in name:
+                qualities.add("x265")
+
+        if not qualities:
+
+            text = "🎥 Quality Info Not Found"
+
+        else:
+
+            text = "🎥 Available Qualities\n\n"
+
+            for q in sorted(qualities):
+
+                text += f"• {q}\n"
+
+        await safe_edit(
+            query.message,
+            text,
+            query.message.reply_markup
+        )
+
+        return
+
+
+    # =========================
     # PAGINATION
     # =========================
     if data.startswith("page_"):
