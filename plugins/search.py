@@ -1,3 +1,8 @@
+# =========================
+# search.py
+# FULL OPTIMIZED VERSION
+# =========================
+
 from telegram.ext import MessageHandler, filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -82,6 +87,22 @@ async def delete_message(context):
             chat_id=data["chat_id"],
             message_id=data["message_id"]
         )
+
+    except:
+
+        pass
+
+
+# =========================
+# CLEAR CACHE
+# =========================
+async def clear_cache(context):
+
+    search_id = context.job.data
+
+    try:
+
+        del context.bot_data[search_id]
 
     except:
 
@@ -287,14 +308,14 @@ async def search_files(update, context):
 
         context.application.job_queue.run_once(
             delete_message,
-            when=20,
+            when=10,
             data={
                 "chat_id": search_msg.chat_id,
                 "message_id": search_msg.message_id
             }
         )
 
-        # SUGGESTION SEARCH
+        # SUGGESTIONS
         all_files = await files_col.find(
             {},
             {"file_name": 1}
@@ -339,7 +360,7 @@ async def search_files(update, context):
 
     context.application.job_queue.run_once(
         delete_message,
-        when=20,
+        when=10,
         data={
             "chat_id": search_msg.chat_id,
             "message_id": search_msg.message_id
@@ -367,6 +388,16 @@ async def search_files(update, context):
         "time": time.time()
 
     }
+
+
+    # =========================
+    # AUTO CLEAR CACHE
+    # =========================
+    context.application.job_queue.run_once(
+        clear_cache,
+        when=600,
+        data=search_id
+    )
 
 
     # =========================
@@ -405,7 +436,7 @@ async def search_files(update, context):
 
         )
 
-        if poster:
+        if poster and poster != "N/A":
 
             sent_message = await msg.reply_photo(
                 photo=poster,
@@ -433,7 +464,7 @@ async def search_files(update, context):
     # =========================
     context.application.job_queue.run_once(
         delete_message,
-        when=305,
+        when=180,
         data={
             "chat_id": sent_message.chat_id,
             "message_id": sent_message.message_id
