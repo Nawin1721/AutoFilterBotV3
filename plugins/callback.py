@@ -304,7 +304,7 @@ async def button_click(update, context):
 
 
     # =========================
-    # LANGUAGE FILTER
+    # LANGUAGE FILTER MENU
     # =========================
     if data.startswith("language_"):
 
@@ -323,53 +323,126 @@ async def button_click(update, context):
 
         results = cache["results"]
 
-        languages = set()
+        languages = []
 
         for file in results:
 
             name = file["file_name"].lower()
 
             if "telugu" in name:
-                languages.add("Telugu")
+                languages.append("Telugu")
 
             if "tamil" in name:
-                languages.add("Tamil")
+                languages.append("Tamil")
 
             if "hindi" in name:
-                languages.add("Hindi")
+                languages.append("Hindi")
 
             if "malayalam" in name:
-                languages.add("Malayalam")
+                languages.append("Malayalam")
 
             if "kannada" in name:
-                languages.add("Kannada")
+                languages.append("Kannada")
 
             if "english" in name:
-                languages.add("English")
+                languages.append("English")
+
+        languages = sorted(list(set(languages)))
 
         if not languages:
 
-            text = "🌐 Languages Not Found"
+            await query.answer(
+                "No Languages Found",
+                show_alert=True
+            )
 
-        else:
+            return
 
-            text = "🌐 Available Languages\n\n"
+        buttons = []
 
-            for lang in sorted(languages):
+        for lang in languages:
 
-                text += f"• {lang}\n"
+            buttons.append([
+
+                InlineKeyboardButton(
+                    lang,
+                    callback_data=f"langfilter_{search_id}_{lang.lower()}"
+                )
+
+            ])
+
+        buttons.append([
+
+            InlineKeyboardButton(
+                "⬅️ Back",
+                callback_data=f"page_{search_id}_0"
+            )
+
+        ])
 
         await safe_edit(
             query.message,
-            text,
-            query.message.reply_markup
+            "🌐 Select Language",
+            InlineKeyboardMarkup(buttons)
         )
 
         return
 
 
     # =========================
-    # QUALITY FILTER
+    # LANGUAGE RESULT
+    # =========================
+    if data.startswith("langfilter_"):
+
+        parts = data.split("_")
+
+        search_id = parts[1]
+
+        language = parts[2]
+
+        cache = context.bot_data.get(search_id)
+
+        if not cache:
+
+            return
+
+        results = cache["results"]
+
+        filtered = []
+
+        for file in results:
+
+            if language in file["file_name"].lower():
+
+                filtered.append(file)
+
+        if not filtered:
+
+            await query.answer(
+                "No Files Found",
+                show_alert=True
+            )
+
+            return
+
+        reply_markup = build_buttons(
+            filtered,
+            context.bot.username,
+            search_id,
+            0
+        )
+
+        await safe_edit(
+            query.message,
+            f"🌐 {language.upper()} Files",
+            reply_markup
+        )
+
+        return
+
+
+    # =========================
+    # QUALITY FILTER MENU
     # =========================
     if data.startswith("quality_"):
 
@@ -388,46 +461,119 @@ async def button_click(update, context):
 
         results = cache["results"]
 
-        qualities = set()
+        qualities = []
 
         for file in results:
 
             name = file["file_name"].lower()
 
             if "480p" in name:
-                qualities.add("480p")
+                qualities.append("480p")
 
             if "720p" in name:
-                qualities.add("720p")
+                qualities.append("720p")
 
             if "1080p" in name:
-                qualities.add("1080p")
+                qualities.append("1080p")
 
             if "2160p" in name:
-                qualities.add("2160p")
+                qualities.append("2160p")
 
             if "x264" in name:
-                qualities.add("x264")
+                qualities.append("x264")
 
             if "x265" in name:
-                qualities.add("x265")
+                qualities.append("x265")
+
+        qualities = sorted(list(set(qualities)))
 
         if not qualities:
 
-            text = "🎥 Quality Info Not Found"
+            await query.answer(
+                "No Quality Found",
+                show_alert=True
+            )
 
-        else:
+            return
 
-            text = "🎥 Available Qualities\n\n"
+        buttons = []
 
-            for q in sorted(qualities):
+        for q in qualities:
 
-                text += f"• {q}\n"
+            buttons.append([
+
+                InlineKeyboardButton(
+                    q,
+                    callback_data=f"qualityfilter_{search_id}_{q.lower()}"
+                )
+
+            ])
+
+        buttons.append([
+
+            InlineKeyboardButton(
+                "⬅️ Back",
+                callback_data=f"page_{search_id}_0"
+            )
+
+        ])
 
         await safe_edit(
             query.message,
-            text,
-            query.message.reply_markup
+            "🎥 Select Quality",
+            InlineKeyboardMarkup(buttons)
+        )
+
+        return
+
+
+    # =========================
+    # QUALITY RESULT
+    # =========================
+    if data.startswith("qualityfilter_"):
+
+        parts = data.split("_")
+
+        search_id = parts[1]
+
+        quality = parts[2]
+
+        cache = context.bot_data.get(search_id)
+
+        if not cache:
+
+            return
+
+        results = cache["results"]
+
+        filtered = []
+
+        for file in results:
+
+            if quality in file["file_name"].lower():
+
+                filtered.append(file)
+
+        if not filtered:
+
+            await query.answer(
+                "No Files Found",
+                show_alert=True
+            )
+
+            return
+
+        reply_markup = build_buttons(
+            filtered,
+            context.bot.username,
+            search_id,
+            0
+        )
+
+        await safe_edit(
+            query.message,
+            f"🎥 {quality.upper()} Files",
+            reply_markup
         )
 
         return
