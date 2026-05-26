@@ -1,16 +1,27 @@
-from telegram.ext import CallbackQueryHandler
+# =========================
+# search.py
+# FULL OPTIMIZED VERSION
+# =========================
+
+from telegram.ext import MessageHandler, filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import BadRequest
 
-from database import files_col
+from database import files_col, users_col
 
-import asyncio
+from plugins.force_sub import check_sub, force_sub_message
+from plugins.imdb import get_movie
+
+from rapidfuzz import process
+
+import uuid
+import time
+
 
 RESULTS_PER_PAGE = 10
 
 
 # =========================
-# FORMAT SIZE
+# FORMAT FILE SIZE
 # =========================
 def human_size(size):
 
@@ -36,35 +47,66 @@ def human_size(size):
 
 
 # =========================
-# SAFE EDIT
+# SEARCH PATTERN
 # =========================
-async def safe_edit(message, text, reply_markup=None):
+def create_search_pattern(query):
+
+    query = query.lower()
+
+    query = (
+        query
+        .replace("(", " ")
+        .replace(")", " ")
+        .replace("[", " ")
+        .replace("]", " ")
+        .replace(".", " ")
+        .replace("_", " ")
+        .replace("-", " ")
+    )
+
+    words = query.split()
+
+    pattern = ".*".join(words)
+
+    return pattern
+
+
+# =========================
+# DELETE MESSAGE
+# =========================
+async def delete_message(context):
+
+    if not context.job:
+        return
+
+    data = context.job.data
 
     try:
 
-        # PHOTO MESSAGE
-        if message.photo:
+        await context.bot.delete_message(
+            chat_id=data["chat_id"],
+            message_id=data["message_id"]
+        )
 
-            await message.edit_caption(
-                caption=text,
-                reply_markup=reply_markup
-            )
+    except:
 
-        # NORMAL MESSAGE
-        else:
+        pass
 
-            await message.edit_text(
-                text=text,
-                reply_markup=reply_markup
-            )
 
-    except BadRequest as e:
+# =========================
+# CLEAR CACHE
+# =========================
+async def clear_cache(context):
 
-        if "Message is not modified" in str(e):
-            pass
+    search_id = context.job.data
 
-        else:
-            print(e)
+    try:
+
+        del context.bot_data[search_id]
+
+    except:
+
+        pass
 
 
 # =========================
@@ -171,315 +213,282 @@ def build_buttons(
 
 
 # =========================
-# DELETE PM FILE
+# SEARCH FILES
 # =========================
-async def delete_pm_file(context):
+async def search_files(update, context):
 
-    if not context.job:
+    msg = update.message
+
+    if not msg:
         return
 
-    data = context.job.data
+    query = msg.text.strip()
 
-    try:
+    if not query:
+        return
 
-        await context.bot.delete_message(
-            chat_id=data["chat_id"],
-            message_id=data["message_id"]
-        )
+    print(f"Searching: {query}")
 
-    except:
-
-        pass
-
-
-# =========================
-# CALLBACK MAIN
-# =========================
-async def button_click(update, context):
-
-    query = update.callback_query
-
-    await query.answer()
-
-    data = query.data
+    user_id = msg.from_user.id
 
 
     # =========================
-    # HELP MENU
+    # SAVE USER
     # =========================
-    if data == "help_menu":
+    existing_user = await users_col.find_one({
+        "user_id": user_id
+    })
 
-        text = (
+    if not existing_user:
 
-            "📚 Bot Help Menu\n\n"
+        await users_col.insert_one({
+            "user_id": user_id
+        })
 
-            "🎬 Search Movie Names In Group\n"
 
-            "📥 Files Will Be Sent In PM\n"
+    # =========================
+    # FORCE SUB
+    # =========================
+    joined = await check_sub(update, context)
 
-            "📤 Send All = Current Page Files\n"
+    if not joined:
 
-            "🗑 Files Auto Delete After 5 Minutes\n\n"
+        await force_sub_message(msg)
+        return
 
-            "⚡ Features:\n"
 
-            "• IMDb Posters\n"
+    # =========================
+    # SEARCHING MESSAGE
+    # =========================
+    search_msg = await msg.reply_text(
+        "🔍 Searching..."
+    )
 
-            "• Smart Search\n"
 
-            "• Pagination\n"
+    # =========================
+    # SEARCH PATTERN
+    # =========================
+    search_pattern = create_search_pattern(query)
 
-            "• Multi-user Support\n"
 
-            "• Fast AutoFilter"
+    # =========================
+    # DATABASE SEARCH
+    # =========================
+    results = await files_col.find({
 
-        )
+        "$or": [
 
-        buttons = [
+            {
+                "search_text": {
+                    "$regex": search_pattern,
+                    "$options": "i"
+                }
+            },
 
-            [
-
-                InlineKeyboardButton(
-                    "⬅️ Back",
-                    callback_data="back_start"
-                )
-
-            ]
+            {
+                "caption": {
+                    "$regex": search_pattern,
+                    "$options": "i"
+                }
+            }
 
         ]
 
-        try:
+    }).to_list(length=100)
 
-            await query.message.edit_caption(
-                caption=text,
-                reply_markup=InlineKeyboardMarkup(buttons)
+
+    # =========================
+    # NO RESULTS
+    # =========================
+    if not results:
+
+        await search_msg.edit_text(
+            "❌ No Results Found"
+        )
+
+        context.application.job_queue.run_once(
+            delete_message,
+            when=10,
+            data={
+                "chat_id": search_msg.chat_id,
+                "message_id": search_msg.message_id
+            }
+        )
+
+        # SUGGESTIONS
+        all_files = await files_col.find(
+            {},
+            {"file_name": 1}
+        ).to_list(length=300)
+
+        movie_names = [
+            x["file_name"]
+            for x in all_files
+        ]
+
+        match = process.extractOne(
+            query,
+            movie_names
+        )
+
+        if match:
+
+            suggestion = match[0]
+
+            suggest_msg = await msg.reply_text(
+                f"❓ Did You Mean:\n\n{suggestion}"
             )
 
-        except:
-
-            await query.message.edit_text(
-                text=text,
-                reply_markup=InlineKeyboardMarkup(buttons)
+            context.application.job_queue.run_once(
+                delete_message,
+                when=20,
+                data={
+                    "chat_id": suggest_msg.chat_id,
+                    "message_id": suggest_msg.message_id
+                }
             )
 
         return
 
 
     # =========================
-    # BACK TO START
+    # FOUND MESSAGE
     # =========================
-    if data == "back_start":
+    await search_msg.edit_text(
+        f"✅ Found {len(results)} Results"
+    )
+
+    context.application.job_queue.run_once(
+        delete_message,
+        when=10,
+        data={
+            "chat_id": search_msg.chat_id,
+            "message_id": search_msg.message_id
+        }
+    )
+
+
+    # =========================
+    # SEARCH ID
+    # =========================
+    search_id = uuid.uuid4().hex[:8]
+
+
+    # =========================
+    # SAVE CACHE
+    # =========================
+    context.bot_data[search_id] = {
+
+        "results": results,
+
+        "query": query,
+
+        "user_id": msg.from_user.id,
+
+        "time": time.time()
+
+    }
+
+
+    # =========================
+    # AUTO CLEAR CACHE
+    # =========================
+    context.application.job_queue.run_once(
+        clear_cache,
+        when=600,
+        data=search_id
+    )
+
+
+    # =========================
+    # BUTTONS
+    # =========================
+    reply_markup = build_buttons(
+        results,
+        context.bot.username,
+        search_id,
+        page=0
+    )
+
+
+    # =========================
+    # IMDb FIRST
+    # =========================
+    movie = await get_movie(query)
+
+
+    # =========================
+    # SEND IMDb + BUTTONS
+    # =========================
+    if movie:
+
+        poster = movie.get("poster")
+
+        caption = movie.get("caption")
 
         text = (
 
-            "🔥 Welcome To Our AutoFilter Bot 🔥\n\n"
+            f"{caption}\n\n"
 
-            "🎬 Search Any Movie Name In Group\n"
+            f"🔎 Search Results\n"
 
-            "📥 Files Will Be Sent In PM\n"
-
-            "⚡ Fast & Smart Search\n"
-
-            "🎭 IMDb Posters & Details\n"
-
-            "📄 Pagination + Filters\n"
-
-            "📤 Send All Files Feature"
+            f"📄 Page: 1"
 
         )
 
-        buttons = [
+        if poster and poster != "N/A":
 
-            [
-
-                InlineKeyboardButton(
-                    "📢 Updates",
-                    url="https://t.me/Max_Files77"
-                ),
-
-                InlineKeyboardButton(
-                    "❓ Help",
-                    callback_data="help_menu"
-                )
-
-            ]
-
-        ]
-
-        try:
-
-            await query.message.edit_caption(
+            sent_message = await msg.reply_photo(
+                photo=poster,
                 caption=text,
-                reply_markup=InlineKeyboardMarkup(buttons)
+                reply_markup=reply_markup
             )
 
-        except:
+        else:
 
-            await query.message.edit_text(
-                text=text,
-                reply_markup=InlineKeyboardMarkup(buttons)
+            sent_message = await msg.reply_text(
+                text,
+                reply_markup=reply_markup
             )
 
-        return
+    else:
+
+        sent_message = await msg.reply_text(
+            "🔎 Search Results\n📄 Page: 1",
+            reply_markup=reply_markup
+        )
 
 
     # =========================
-    # PAGINATION
+    # AUTO DELETE RESULTS
     # =========================
-    if data.startswith("page_"):
-
-        parts = data.split("_")
-
-        search_id = parts[1]
-
-        page = int(parts[2])
-
-        cache = context.bot_data.get(search_id)
-
-        if not cache:
-
-            await query.answer(
-                "⚠️ Search Expired",
-                show_alert=True
-            )
-
-            return
-
-        # USER PROTECTION
-        if cache["user_id"] != query.from_user.id:
-
-            await query.answer(
-                "❌ This Search Belongs To Another User",
-                show_alert=True
-            )
-
-            return
-
-        results = cache["results"]
-
-        reply_markup = build_buttons(
-            results,
-            context.bot.username,
-            search_id,
-            page
-        )
-
-        await safe_edit(
-            query.message,
-            f"🔍 Search Results\n📄 Page: {page+1}",
-            reply_markup
-        )
-
-        return
+    context.application.job_queue.run_once(
+        delete_message,
+        when=180,
+        data={
+            "chat_id": sent_message.chat_id,
+            "message_id": sent_message.message_id
+        }
+    )
 
 
     # =========================
-    # SEND ALL
+    # AUTO DELETE USER SEARCH
     # =========================
-    if data.startswith("sendall_"):
-
-        parts = data.split("_")
-
-        search_id = parts[1]
-
-        page = int(parts[2])
-
-        cache = context.bot_data.get(search_id)
-
-        if not cache:
-
-            await query.answer(
-                "⚠️ Search Expired",
-                show_alert=True
-            )
-
-            return
-
-        # USER PROTECTION
-        if cache["user_id"] != query.from_user.id:
-
-            await query.answer(
-                "❌ This Search Belongs To Another User",
-                show_alert=True
-            )
-
-            return
-
-        results = cache["results"]
-
-        start = page * RESULTS_PER_PAGE
-        end = start + RESULTS_PER_PAGE
-
-        current_results = results[start:end]
-
-        status_msg = await context.bot.send_message(
-            chat_id=query.message.chat.id,
-            text="📤 Sending Files In PM..."
-        )
-
-        sent = 0
-
-        for file in current_results:
-
-            try:
-
-                sent_file = await context.bot.copy_message(
-                    chat_id=query.from_user.id,
-                    from_chat_id=file["chat_id"],
-                    message_id=file["message_id"]
-                )
-
-                context.application.job_queue.run_once(
-                    delete_pm_file,
-                    when=305,
-                    data={
-                        "chat_id": query.from_user.id,
-                        "message_id": sent_file.message_id
-                    }
-                )
-
-                sent += 1
-
-                await asyncio.sleep(0.3)
-
-            except Exception as e:
-
-                print(e)
-
-        warning_msg = await context.bot.send_message(
-            chat_id=query.from_user.id,
-            text="🗑 Deleting in 5Min, forward quickly…"
-        )
-
-        context.application.job_queue.run_once(
-            delete_pm_file,
-            when=305,
-            data={
-                "chat_id": query.from_user.id,
-                "message_id": warning_msg.message_id
-            }
-        )
-
-        await safe_edit(
-            status_msg,
-            f"✅ Sent {sent} Files In PM"
-        )
-
-        context.application.job_queue.run_once(
-            delete_pm_file,
-            when=20,
-            data={
-                "chat_id": status_msg.chat_id,
-                "message_id": status_msg.message_id
-            }
-        )
-
-        return
+    context.application.job_queue.run_once(
+        delete_message,
+        when=5,
+        data={
+            "chat_id": msg.chat.id,
+            "message_id": msg.message_id
+        }
+    )
 
 
 # =========================
 # HANDLER
 # =========================
-callback_handler = CallbackQueryHandler(
-    button_click
+search_handler = MessageHandler(
+    filters.TEXT & ~filters.COMMAND,
+    search_files
 )
