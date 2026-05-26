@@ -42,10 +42,21 @@ async def safe_edit(message, text, reply_markup=None):
 
     try:
 
-        await message.edit_text(
-            text=text,
-            reply_markup=reply_markup
-        )
+        # PHOTO MESSAGE
+        if message.photo:
+
+            await message.edit_caption(
+                caption=text,
+                reply_markup=reply_markup
+            )
+
+        # NORMAL MESSAGE
+        else:
+
+            await message.edit_text(
+                text=text,
+                reply_markup=reply_markup
+            )
 
     except BadRequest as e:
 
@@ -194,6 +205,125 @@ async def button_click(update, context):
 
 
     # =========================
+    # HELP MENU
+    # =========================
+    if data == "help_menu":
+
+        text = (
+
+            "📚 Bot Help Menu\n\n"
+
+            "🎬 Search Movie Names In Group\n"
+
+            "📥 Files Will Be Sent In PM\n"
+
+            "📤 Send All = Current Page Files\n"
+
+            "🗑 Files Auto Delete After 5 Minutes\n\n"
+
+            "⚡ Features:\n"
+
+            "• IMDb Posters\n"
+
+            "• Smart Search\n"
+
+            "• Pagination\n"
+
+            "• Multi-user Support\n"
+
+            "• Fast AutoFilter"
+
+        )
+
+        buttons = [
+
+            [
+
+                InlineKeyboardButton(
+                    "⬅️ Back",
+                    callback_data="back_start"
+                )
+
+            ]
+
+        ]
+
+        try:
+
+            await query.message.edit_caption(
+                caption=text,
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        except:
+
+            await query.message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        return
+
+
+    # =========================
+    # BACK TO START
+    # =========================
+    if data == "back_start":
+
+        text = (
+
+            "🔥 Welcome To Our AutoFilter Bot 🔥\n\n"
+
+            "🎬 Search Any Movie Name In Group\n"
+
+            "📥 Files Will Be Sent In PM\n"
+
+            "⚡ Fast & Smart Search\n"
+
+            "🎭 IMDb Posters & Details\n"
+
+            "📄 Pagination + Filters\n"
+
+            "📤 Send All Files Feature"
+
+        )
+
+        buttons = [
+
+            [
+
+                InlineKeyboardButton(
+                    "📢 Updates",
+                    url="https://t.me/Max_Files77"
+                ),
+
+                InlineKeyboardButton(
+                    "❓ Help",
+                    callback_data="help_menu"
+                )
+
+            ]
+
+        ]
+
+        try:
+
+            await query.message.edit_caption(
+                caption=text,
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        except:
+
+            await query.message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        return
+
+
+    # =========================
     # PAGINATION
     # =========================
     if data.startswith("page_"):
@@ -309,6 +439,8 @@ async def button_click(update, context):
                 )
 
                 sent += 1
+
+                await asyncio.sleep(0.3)
 
             except Exception as e:
 
