@@ -315,6 +315,16 @@ async def search_files(update, context):
             }
         )
 
+        # AUTO DELETE USER SEARCH
+        context.application.job_queue.run_once(
+            delete_message,
+            when=5,
+            data={
+                "chat_id": msg.chat.id,
+                "message_id": msg.message_id
+            }
+        )
+
         # SUGGESTIONS
         all_files = await files_col.find(
             {},
