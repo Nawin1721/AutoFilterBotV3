@@ -15,7 +15,7 @@ db2 = client2[DB_NAME_2]
 
 files_col_1 = db1["files"]
 files_col_2 = db2["files"]
-
+files_col = files_col_1
 users_col = db1["users"]
 requests_col = db1["requests"]
 
