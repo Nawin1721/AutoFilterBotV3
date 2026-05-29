@@ -264,13 +264,6 @@ async def search_files(update, context):
         "🔍 Searching..."
     )
 
-
-    # =========================
-    # SEARCH PATTERN
-    # =========================
-    search_pattern = create_search_pattern(query)
-
-
     # =========================
     # DATABASE SEARCH
     # =========================
@@ -294,8 +287,10 @@ async def search_files(update, context):
 
         ]
 
-    }).to_list(length=100)
-
+    }).sort(
+        "message_id",
+        -1
+    ).to_list(length=100)
 
     # =========================
     # NO RESULTS
