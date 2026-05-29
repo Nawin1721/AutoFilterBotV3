@@ -14,4 +14,6 @@ GROUP_ID = int(os.getenv("GROUP_ID"))
 
 DB_CHANNEL_ID = int(os.getenv("DB_CHANNEL_ID"))
 
+DB_CHANNEL_ID_2 = int(os.getenv("DB_CHANNEL_ID_2"))
+
 FORCE_SUB_CHANNEL = os.getenv("FORCE_SUB_CHANNEL")
