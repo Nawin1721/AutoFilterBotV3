@@ -263,6 +263,11 @@ async def search_files(update, context):
     search_msg = await msg.reply_text(
         "🔍 Searching..."
     )
+    
+    # =========================
+    # SEARCH PATTERN
+    # =========================
+    search_pattern = create_search_pattern(query)
 
     # =========================
     # DATABASE SEARCH
