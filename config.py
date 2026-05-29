@@ -4,6 +4,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 MONGO_URL = os.getenv("MONGO_URL")
 
+MONGO_URL_2 = os.getenv("MONGO_URL_2")
+
 DB_NAME = os.getenv("DB_NAME")
 
 BOT_USERNAME = os.getenv("BOT_USERNAME")
