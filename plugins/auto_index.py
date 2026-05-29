@@ -13,7 +13,6 @@ async def save_media(update, context):
         return
 
     print("CHANNEL POST RECEIVED 🔥")
-
     print("CHAT ID:", msg.chat.id)
 
     # CHECK DB CHANNEL
@@ -40,11 +39,8 @@ async def save_media(update, context):
         file_size = msg.video.file_size
 
         if msg.video.file_name:
-
             file_name = msg.video.file_name
-
         else:
-
             file_name = "video.mp4"
 
     # AUDIO
@@ -80,37 +76,43 @@ async def save_media(update, context):
             .replace(")", " ")
         )
 
-        # DUPLICATE CHECK
-        existing = files_col.find_one({
-            "file_id": file_id
-        })
+        try:
 
-        if existing:
+            # DUPLICATE CHECK
+            existing = await files_col.find_one({
+                "file_id": file_id
+            })
 
-            print("ALREADY INDEXED ⚠️")
-            return
+            if existing:
 
-        data = {
+                print("ALREADY INDEXED ⚠️")
+                return
 
-            "file_name": file_name,
+            data = {
 
-            "file_id": file_id,
+                "file_name": file_name,
 
-            "file_size": file_size,
+                "file_id": file_id,
 
-            "caption": caption,
+                "file_size": file_size,
 
-            "search_text": search_text,
+                "caption": caption,
 
-            # IMPORTANT FOR COPY MESSAGE
-            "chat_id": msg.chat.id,
+                "search_text": search_text,
 
-            "message_id": msg.message_id
-        }
+                # IMPORTANT FOR COPY MESSAGE
+                "chat_id": msg.chat.id,
 
-        files_col.insert_one(data)
+                "message_id": msg.message_id
+            }
 
-        print(f"Indexed: {file_name} ✅")
+            await files_col.insert_one(data)
+
+            print(f"Indexed: {file_name} ✅")
+
+        except Exception as e:
+
+            print(f"DATABASE ERROR ❌ {e}")
 
     else:
 
