@@ -158,8 +158,6 @@ async def button_click(update, context):
 
     query = update.callback_query
 
-    await query.answer()
-
     data = query.data
 
     # =========================
@@ -238,7 +236,7 @@ async def button_click(update, context):
         # owner check
         if cache["user_id"] != query.from_user.id:
 
-            await query.answer("❌ This is not your request", show_alert=False)
+            await query.answer("❌ This is not your request", show_alert=True)
             return
 
         results = cache["results"]
@@ -315,7 +313,7 @@ async def button_click(update, context):
             return
         # OWNER CHECK
         if cache["user_id"] != query.from_user.id:
-            await query.answer("❌ This is not your request", show_alert=False)
+            await query.answer("❌ This is not your request", show_alert=True)
 
             return
 
@@ -357,7 +355,7 @@ async def button_click(update, context):
             return
 
         if cache["user_id"] != query.from_user.id:
-            await query.answer("❌ This is not your request", show_alert=False)
+            await query.answer("❌ This is not your request", show_alert=True)
             return
 
         results = cache["results"]
@@ -434,7 +432,7 @@ async def button_click(update, context):
             return
 
         if cache["user_id"] != query.from_user.id:
-            await query.answer("❌ This is not your request", show_alert=False)
+            await query.answer("❌ This is not your request", show_alert=True)
             return
 
         results = cache["results"]
@@ -527,7 +525,7 @@ async def button_click(update, context):
             return
 
         if cache["user_id"] != query.from_user.id:
-            await query.answer("❌ This is not your request", show_alert=False)
+            await query.answer("❌ This is not your request", show_alert=True)
             return
 
         results = cache["results"]
@@ -630,3 +628,4 @@ async def button_click(update, context):
 # HANDLER
 # =========================
 callback_handler = CallbackQueryHandler(button_click)
+
