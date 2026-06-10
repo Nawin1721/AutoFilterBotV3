@@ -276,20 +276,16 @@ async def search_files(update, context):
                     chat_id=msg.chat.id, text=f"❓ Did You Mean:\n\n{suggestion}"
                 )
 
+                context.application.job_queue.run_once(
+                    delete_message,
+                    when=20,
+                    data={
+                        "chat_id": suggest_msg.chat_id,
+                        "message_id": suggest_msg.message_id,
+                    },
+                )
             except Exception as e:
-
                 print(f"SUGGEST ERROR: {e}")
-
-            context.application.job_queue.run_once(
-                delete_message,
-                when=20,
-                data={
-                    "chat_id": suggest_msg.chat_id,
-                    "message_id": suggest_msg.message_id,
-                },
-            )
-
-        return
 
     # =========================
     # FOUND MESSAGE
@@ -303,6 +299,14 @@ async def search_files(update, context):
     )
 
     # =========================
+    # IMDb FIRST
+    # =========================
+    imdb_query = re.sub(r"\b(19|20)\d{2}\b", "", query)
+
+    imdb_query = imdb_query.replace("(", "").replace(")", "").strip()
+    movie = await get_movie(imdb_query)
+
+    # =========================
     # SEARCH ID
     # =========================
     search_id = uuid.uuid4().hex[:8]
@@ -310,7 +314,6 @@ async def search_files(update, context):
     # =========================
     # SAVE CACHE
     # =========================
-    movie = await get_movie(imdb_query)
     context.bot_data[search_id] = {
         "results": results,
         "query": query,
@@ -328,14 +331,6 @@ async def search_files(update, context):
     # BUTTONS
     # =========================
     reply_markup = build_buttons(results, context.bot.username, search_id, page=0)
-
-    # =========================
-    # IMDb FIRST
-    # =========================
-    imdb_query = re.sub(r"\b(19|20)\d{2}\b", "", query)
-
-    imdb_query = imdb_query.replace("(", "").replace(")", "").strip()
-    movie = await get_movie(imdb_query)
 
     # =========================
     # SEND IMDb + BUTTONS
