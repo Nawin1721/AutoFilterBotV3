@@ -68,6 +68,11 @@ async def start(update, context):
 
     args = context.args
 
+    user = update.effective_user
+    
+    mention = user.mention_html()
+
+
 
     # =========================
     # FILE START PARAMETER
@@ -119,7 +124,8 @@ async def start(update, context):
                 when=305,
                 data={
                     "chat_id": msg.chat.id,
-                    "message_id": sent_file.message_id
+                    "message_id": sent_file.message_id,
+                    parse_mode="HTML"
                 }
             )
 
@@ -189,24 +195,13 @@ async def start(update, context):
 
 
     text = (
+        f"👋 Hey {mention} 🚩, Nice To Meet You\n\n"
 
-        "🔥 Welcome To Our AutoFilter Bot 🔥\n\n"
+        "Here You Can Get Movies And Series Inside The Bot,\n"
+        "Just Send Movie Or Series Name With Proper Spelling..!!\n\n"
 
-        "🎬 Search Any Movie Name In Group\n"
-
-        "📥 Files Will Be Sent In PM\n"
-
-        "⚡ Fast & Smart Search\n"
-
-        "🎭 IMDb Posters & Details\n"
-
-        "📄 Pagination + Filters\n"
-
-        "📤 Send All Files Feature\n\n"
-
-        "⚠️ PM Files Will Be Auto Deleted After Some Time.\n"
-
-        "📌 Forward / Save Important Files Immediately."
+        "➤ Controlled By : "
+        '<a href="https://t.me/max_Files7">Max_Files7💜</a>'
 
     )
 
@@ -225,7 +220,8 @@ async def start(update, context):
     await msg.reply_photo(
         photo=photo_id,
         caption=text,
-        reply_markup=reply_markup
+        reply_markup=reply_markup,
+        parse_mode="HTML"
     )
 
 
