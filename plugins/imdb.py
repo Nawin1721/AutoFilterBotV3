@@ -10,10 +10,7 @@ async def get_movie(query):
 
     try:
 
-        url = (
-            f"http://www.omdbapi.com/"
-            f"?t={query}&apikey={API_KEY}"
-        )
+        url = f"http://www.omdbapi.com/" f"?t={query}&apikey={API_KEY}"
 
         async with aiohttp.ClientSession() as session:
 
@@ -31,23 +28,19 @@ async def get_movie(query):
             poster = None
 
         caption = (
-            f"🎬 {data.get('Title', 'Unknown')} "
-            f"({data.get('Year', 'N/A')})\n"
-
-            f"⭐ Rating: "
-            f"{data.get('imdbRating', 'N/A')}/10\n"
-
-            f"🎭 Genre: "
-            f"{data.get('Genre', 'N/A')}"
+            f"<b>🎬 Movie:</b> {data.get('Title', 'Unknown')}\n\n"
+            f"<b>📅 Year:</b> {data.get('Year', 'N/A')}\n"
+            f"<b>⭐ IMDb Rating:</b> {data.get('imdbRating', 'N/A')}/10\n"
+            f"<b>🎭 Genre:</b> {data.get('Genre', 'N/A')}\n"
+            f"<b>⏳ Runtime:</b> {data.get('Runtime', 'N/A')}\n"
+            f"<b>🌍 Language:</b> {data.get('Language', 'N/A')}\n"
+            f"<b>🎬 Director:</b> {data.get('Director', 'N/A')}\n"
+            f"<b>🏆 Awards:</b> {data.get('Awards', 'N/A')}\n\n"
+            f"<b>📖 Plot:</b>\n"
+            f"{data.get('Plot', 'N/A')}"
         )
 
-        return {
-
-            "poster": poster,
-
-            "caption": caption
-
-        }
+        return {"poster": poster, "caption": caption}
 
     except Exception as e:
 
