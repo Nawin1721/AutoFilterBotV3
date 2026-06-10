@@ -43,11 +43,15 @@ async def safe_edit(message, text, reply_markup=None):
 
         if message.photo:
 
-            await message.edit_caption(caption=text, reply_markup=reply_markup)
+            await message.edit_caption(
+                caption=text, reply_markup=reply_markup, parse_mode="HTML"
+            )
 
         else:
 
-            await message.edit_text(text=text, reply_markup=reply_markup)
+            await message.edit_text(
+                text=text, reply_markup=reply_markup, parse_mode="HTML"
+            )
 
     except BadRequest as e:
 
@@ -189,13 +193,11 @@ async def button_click(update, context):
     if data == "back_start":
 
         text = (
-            "🔥 Welcome To Our AutoFilter Bot 🔥\n\n"
-            "🎬 Search Any Movie Name In Group\n"
-            "📥 Files Will Be Sent In PM\n"
-            "⚡ Fast & Smart Search\n"
-            "🎭 IMDb Posters & Details\n"
-            "📄 Pagination + Filters\n"
-            "📤 Send All Files Feature"
+            f"👋 Hey Broh 🚩, Nice To Meet You\n\n"
+            "Here You Can Get Movies And Series Inside The Bot,\n"
+            "Just Send Movie Or Series Name With Proper Spelling..!!\n\n"
+            "➤ Controlled By : "
+            '<a href="https://t.me/max_Files7">Max_Files7</a>'
         )
 
         buttons = [
