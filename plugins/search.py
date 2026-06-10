@@ -270,7 +270,15 @@ async def search_files(update, context):
 
             suggestion = match[0]
 
-            suggest_msg = await msg.reply_text(f"❓ Did You Mean:\n\n{suggestion}")
+            try:
+
+                suggest_msg = await context.bot.send_message(
+                    chat_id=msg.chat.id, text=f"❓ Did You Mean:\n\n{suggestion}"
+                )
+
+            except Exception as e:
+
+                print(f"SUGGEST ERROR: {e}")
 
             context.application.job_queue.run_once(
                 delete_message,
@@ -307,6 +315,7 @@ async def search_files(update, context):
         "query": query,
         "user_id": msg.from_user.id,
         "time": time.time(),
+        "movie": movie,
     }
 
     # =========================
