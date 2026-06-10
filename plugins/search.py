@@ -15,6 +15,7 @@ from rapidfuzz import process
 
 import uuid
 import time
+import re
 
 RESULTS_PER_PAGE = 10
 
@@ -321,7 +322,10 @@ async def search_files(update, context):
     # =========================
     # IMDb FIRST
     # =========================
-    movie = await get_movie(query)
+    imdb_query = re.sub(r"\b(19|20)\d{2}\b", "", query)
+
+    imdb_query = imdb_query.replace("(", "").replace(")", "").strip()
+    movie = await get_movie(imdb_query)
 
     # =========================
     # SEND IMDb + BUTTONS
@@ -332,22 +336,26 @@ async def search_files(update, context):
 
         caption = movie.get("caption")
 
-        text = f"{caption}\n\n" f"🔎 Search Results\n" f"📄 Page: 1"
+        text = f"{caption}\n\n" f"<b>🔎 Search Results</b>\n" f"<b>📄 Page:</b> 1"
 
         if poster and poster != "N/A":
 
             sent_message = await msg.reply_photo(
-                photo=poster, caption=text, reply_markup=reply_markup
+                photo=poster, caption=text, reply_markup=reply_markup, parse_mode="HTML"
             )
 
         else:
 
-            sent_message = await msg.reply_text(text, reply_markup=reply_markup)
+            sent_message = await msg.reply_text(
+                text, reply_markup=reply_markup, parse_mode="HTML"
+            )
 
     else:
 
         sent_message = await msg.reply_text(
-            "🔎 Search Results\n📄 Page: 1", reply_markup=reply_markup
+            "🔎 Search Results\n📄 Page: 1",
+            reply_markup=reply_markup,
+            parse_mode="HTML",
         )
 
     # =========================
