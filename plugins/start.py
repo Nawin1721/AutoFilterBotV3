@@ -124,8 +124,7 @@ async def start(update, context):
                 when=305,
                 data={
                     "chat_id": msg.chat.id,
-                    "message_id": sent_file.message_id,
-                    parse_mode="HTML"
+                    "message_id": sent_file.message_id
                 }
             )
 
