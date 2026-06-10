@@ -310,6 +310,7 @@ async def search_files(update, context):
     # =========================
     # SAVE CACHE
     # =========================
+    movie = await get_movie(imdb_query)
     context.bot_data[search_id] = {
         "results": results,
         "query": query,
