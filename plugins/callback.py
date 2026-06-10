@@ -197,14 +197,24 @@ async def button_click(update, context):
             "Here You Can Get Movies And Series Inside The Bot,\n"
             "Just Send Movie Or Series Name With Proper Spelling..!!\n\n"
             "➤ Controlled By : "
-            '<a href="https://t.me/max_Files7">Max_Files7</a>'
+            '<a href="https://t.me/max_Files7">Max_Files7💜</a>'
         )
 
         buttons = [
             [
                 InlineKeyboardButton("📢 Updates", url="https://t.me/Max_Files77"),
                 InlineKeyboardButton("❓ Help", callback_data="help_menu"),
-            ]
+            ],
+            [
+                InlineKeyboardButton(
+                    "🎬 Search Movies", url="https://t.me/Movie_Request777"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "💜 Contact Admin", url="https://t.me/Theadminor7_bot"
+                )
+            ],
         ]
 
         await safe_edit(query.message, text, InlineKeyboardMarkup(buttons))
@@ -467,6 +477,7 @@ async def button_click(update, context):
             await query.answer("⚠️ Search Expired", show_alert=True)
 
             return
+        movie = cache.get("movie")
 
         if cache["user_id"] != query.from_user.id:
 
@@ -480,9 +491,19 @@ async def button_click(update, context):
 
         reply_markup = build_buttons(results, context.bot.username, search_id, page)
 
-        await safe_edit(
-            query.message, f"🔍 Search Results\n📄 Page: {page+1}", reply_markup
-        )
+        if movie:
+
+            text = (
+                f"{movie['caption']}\n\n"
+                f"<b>🔎 Search Results</b>\n"
+                f"<b>📄 Page:</b> {page+1}"
+            )
+
+        else:
+
+            text = f"<b>🔎 Search Results</b>\n" f"<b>📄 Page:</b> {page+1}"
+
+        await safe_edit(query.message, text, reply_markup)
 
         return
 
