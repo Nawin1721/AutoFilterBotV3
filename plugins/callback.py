@@ -574,18 +574,29 @@ async def button_click(update, context):
                 failed += 1
         if bot_not_started:
             if status_msg:
-                try:
-                    await safe_edit(status_msg, "⚠️ Please start the bot in PM first.")
-                except Exception as e:
-                    print(f"EDIT ERROR: {e}")
+                context.application.job_queue.run_once(
+                    delete_pm_file,
+                    when=1,
+                    data={
+                        "chat_id": status_msg.chat_id,
+                        "message_id": status_msg.message_id,
+                    },
+                )
+
             await query.answer("⚠️ First start the bot in PM", show_alert=True)
+
             return
         if sent == 0:
             if status_msg:
-                try:
-                    await safe_edit(status_msg, "⚠️ Failed to send files.")
-                except Exception as e:
-                    print(f"EDIT ERROR: {e}")
+                context.application.job_queue.run_once(
+                    delete_pm_file,
+                    when=1,
+                    data={
+                        "chat_id": status_msg.chat_id,
+                        "message_id": status_msg.message_id,
+                    },
+                )
+
             await query.answer("⚠️ Unable to send files", show_alert=True)
             return
         try:
@@ -628,4 +639,3 @@ async def button_click(update, context):
 # HANDLER
 # =========================
 callback_handler = CallbackQueryHandler(button_click)
-
