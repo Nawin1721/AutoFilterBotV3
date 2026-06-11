@@ -243,8 +243,10 @@ async def search_files(update, context):
     # NO RESULTS
     # =========================
     if not results:
-
-        await search_msg.edit_text("❌ No Results Found")
+        try:
+            await search_msg.edit_text("❌ No Results Found")
+        except Exception as e:
+            print(f"SEARCH MSG EDIT ERROR: {e}")
 
         context.application.job_queue.run_once(
             delete_message,
@@ -286,11 +288,15 @@ async def search_files(update, context):
                 )
             except Exception as e:
                 print(f"SUGGEST ERROR: {e}")
+        return
 
     # =========================
     # FOUND MESSAGE
     # =========================
-    await search_msg.edit_text(f"✅ Found {len(results)} Results")
+    try:
+        await search_msg.edit_text(f"✅ Found {len(results)} Results")
+    except Exception as e:
+        print(f"SEARCH MSG EDIT ERROR: {e}")
 
     context.application.job_queue.run_once(
         delete_message,
@@ -344,10 +350,18 @@ async def search_files(update, context):
         text = f"{caption}\n\n" f"<b>🔎 Search Results</b>\n" f"<b>📄 Page:</b> 1"
 
         if poster and poster != "N/A":
-
-            sent_message = await msg.reply_photo(
-                photo=poster, caption=text, reply_markup=reply_markup, parse_mode="HTML"
-            )
+            try:
+                sent_message = await msg.reply_photo(
+                    photo=poster,
+                    caption=text,
+                    reply_markup=reply_markup,
+                    parse_mode="HTML",
+                )
+            except Exception as e:
+                print(f"POSTER ERROR: {e}")
+                sent_message = await msg.reply_text(
+                    text, reply_markup=reply_markup, parse_mode="HTML"
+                )
 
         else:
 
@@ -377,7 +391,7 @@ async def search_files(update, context):
     # =========================
     context.application.job_queue.run_once(
         delete_message,
-        when=5,
+        when=10,
         data={"chat_id": msg.chat.id, "message_id": msg.message_id},
     )
 
